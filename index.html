@@ -220,17 +220,16 @@ const exerciseDB = {
 // 訓練模板
 // ============================================
 const defaultTemplates = {
-    monday: { name: '上肢推 + 代謝', icon: '💪', region: 'upper', focus: '胸、肩、三頭', exercises: ['啞鈴胸推', '啞鈴肩推', '伏地挺身', '啞鈴側平舉'] },
-    tuesday: { name: '下肢 + 代謝', icon: '🦵', region: 'lower', focus: '腿、臀', exercises: ['啞鈴深蹲', '啞鈴保加利亞分腿蹲', '啞鈴硬舉', '臀橋'] },
-    thursday: { name: '上肢拉 + 全身', icon: '🏋️', region: 'full', focus: '背、二頭、全身', exercises: ['啞鈴划船', '啞鈴單臂划船', '啞鈴二頭彎舉', '啞鈴抓舉'] },
-    friday: { name: '核心 + 活動度', icon: '🧘', region: 'core', focus: '核心、恢復', exercises: ['平板支撐', '死蟲式', '鳥狗式', '側平板'] }
+    monday: { name: '上肢推 + 代謝', icon: '💪', region: 'upper', focus: '胸、肩、三頭', exercises: ['啞鈴胸推', '啞鈴肩推', '伏地挺身', '啞鈴側平舉', '啞鈴三頭伸展'] },
+    tuesday: { name: '下肢 + 代謝', icon: '🦵', region: 'lower', focus: '腿、臀', exercises: ['啞鈴深蹲', '啞鈴保加利亞分腿蹲', '啞鈴硬舉', '臀橋', '啞鈴弓步蹲'] },
+    thursday: { name: '上肢拉 + 全身', icon: '🏋️', region: 'full', focus: '背、二頭、全身', exercises: ['啞鈴划船', '啞鈴單臂划船', '啞鈴二頭彎舉', '啞鈴抓舉', '啞鈴錘式彎舉'] },
+    friday: { name: '核心 + 活動度', icon: '🧘', region: 'core', focus: '核心、恢復', exercises: ['平板支撐', '死蟲式', '鳥狗式', '側平板', '捲腹'] }
 };
 
 const durationConfigs = {
-    15: { setsPerExercise: 2, exerciseCount: 3, restMultiplier: 0.7, label: '快速' },
-    30: { setsPerExercise: 3, exerciseCount: 4, restMultiplier: 1.0, label: '標準' },
-    45: { setsPerExercise: 3, exerciseCount: 5, restMultiplier: 1.0, label: '完整' },
-    60: { setsPerExercise: 4, exerciseCount: 6, restMultiplier: 1.2, label: '深度' },
+    quick: { setsPerExercise: 2, exerciseCount: 3, restMultiplier: 0.7, label: '快速', estTime: '15-20分鐘', description: '重點肌群、快速衝擊', icon: '⚡' },
+    standard: { setsPerExercise: 3, exerciseCount: 4, restMultiplier: 1.0, label: '標準', estTime: '30-40分鐘', description: '完整刺激目標肌群', icon: '💪' },
+    deep: { setsPerExercise: 4, exerciseCount: 5, restMultiplier: 1.2, label: '深度', estTime: '45-60分鐘', description: '深度刺激、增加變化', icon: '🔥' },
 };
 
 // ============================================
@@ -239,7 +238,7 @@ const durationConfigs = {
 function FitnessApp() {
     const [currentPage, setCurrentPage] = useState('home');
     const [selectedDay, setSelectedDay] = useState(null);
-    const [duration, setDuration] = useState(30);
+    const [duration, setDuration] = useState('standard');
     const [customWorkouts, setCustomWorkouts] = useState({});
     const [progress, setProgress] = useState({});
     
@@ -259,7 +258,20 @@ function FitnessApp() {
     // 載入儲存的資料
     useEffect(() => {
         const settings = safeStorage.get('fittrack_settings');
-        if (settings?.duration) setDuration(settings.duration);
+        if (settings?.duration) {
+            // 處理舊版本相容性：把數字轉換成等級
+            var d = settings.duration;
+            if (typeof d === 'number') {
+                if (d <= 20) d = 'quick';
+                else if (d <= 35) d = 'standard';
+                else d = 'deep';
+            }
+            // 如果不是有效等級，用預設值
+            if (d !== 'quick' && d !== 'standard' && d !== 'deep') {
+                d = 'standard';
+            }
+            setDuration(d);
+        }
         
         const workouts = safeStorage.get('fittrack_customWorkouts');
         if (workouts) setCustomWorkouts(workouts);
@@ -275,9 +287,9 @@ function FitnessApp() {
         return () => clearInterval(interval);
     }, [isTimerRunning]);
 
-    const saveSettings = (newDuration) => {
-        setDuration(newDuration);
-        safeStorage.set('fittrack_settings', { duration: newDuration });
+    const saveSettings = (newLevel) => {
+        setDuration(newLevel);
+        safeStorage.set('fittrack_settings', { duration: newLevel });
         showToast();
     };
 
@@ -576,16 +588,22 @@ function FitnessApp() {
             ),
             React.createElement('div', { className: 'p-4 space-y-6' },
                 React.createElement('div', null,
-                    React.createElement('p', { className: 'text-sm text-slate-400 mb-3 uppercase tracking-wider' }, '訓練時長'),
-                    React.createElement('div', { className: 'grid grid-cols-2 gap-2' },
-                        Object.entries(durationConfigs).map(([min, config]) => React.createElement('button', {
-                            key: min,
-                            onClick: () => saveSettings(parseInt(min)),
-                            className: 'p-4 rounded-2xl border-2 ' + (duration === parseInt(min) ? 'bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border-cyan-500 text-white' : 'bg-slate-800/50 border-slate-700 text-slate-400')
+                    React.createElement('p', { className: 'text-sm text-slate-400 mb-3 uppercase tracking-wider' }, '訓練強度'),
+                    React.createElement('div', { className: 'space-y-2' },
+                        Object.entries(durationConfigs).map(([key, config]) => React.createElement('button', {
+                            key: key,
+                            onClick: () => saveSettings(key),
+                            className: 'w-full p-4 rounded-2xl border-2 text-left ' + (duration === key ? 'bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border-cyan-500 text-white' : 'bg-slate-800/50 border-slate-700 text-slate-400')
                         },
-                            React.createElement('p', { className: 'text-2xl font-bold' }, min, React.createElement('span', { className: 'text-sm' }, '分鐘')),
-                            React.createElement('p', { className: 'text-xs mt-1 opacity-75' }, config.label),
-                            React.createElement('p', { className: 'text-xs mt-1 opacity-75' }, (config.exerciseCount) + '動作 × ' + (config.setsPerExercise) + '組')
+                            React.createElement('div', { className: 'flex items-center justify-between mb-1' },
+                                React.createElement('div', { className: 'flex items-center gap-2' },
+                                    React.createElement('span', { className: 'text-2xl' }, config.icon),
+                                    React.createElement('p', { className: 'text-xl font-bold' }, config.label)
+                                ),
+                                React.createElement('p', { className: 'text-xs opacity-75' }, config.estTime)
+                            ),
+                            React.createElement('p', { className: 'text-xs opacity-75 mb-1' }, config.description),
+                            React.createElement('p', { className: 'text-xs opacity-60' }, (config.exerciseCount) + ' 動作 × ' + (config.setsPerExercise) + ' 組')
                         ))
                     )
                 ),
@@ -628,9 +646,9 @@ function FitnessApp() {
                     React.createElement('div', { className: 'flex justify-between items-center' },
                         React.createElement('div', null,
                             React.createElement('p', { className: 'text-xs text-cyan-400 uppercase tracking-wider mb-1' }, '當前設定'),
-                            React.createElement('p', { className: 'text-2xl font-bold text-white' }, (duration) + '分鐘訓練'),
+                            React.createElement('p', { className: 'text-2xl font-bold text-white' }, durationConfigs[duration].icon + ' ' + durationConfigs[duration].label),
                             React.createElement('p', { className: 'text-xs text-slate-400 mt-1' },
-                                (durationConfigs[duration].exerciseCount) + '動作 × ' + (durationConfigs[duration].setsPerExercise) + '組 · ' + (durationConfigs[duration].label) + '模式'
+                                durationConfigs[duration].estTime + ' · ' + (durationConfigs[duration].exerciseCount) + '動作 × ' + (durationConfigs[duration].setsPerExercise) + '組'
                             )
                         ),
                         React.createElement('button', {
