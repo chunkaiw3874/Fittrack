@@ -8,889 +8,915 @@ const { useState, useEffect } = React;
 // 安全的本地儲存（含錯誤處理）
 // ============================================
 const safeStorage = {
-    get: (key) => {
-        try {
-            const item = localStorage.getItem(key);
-            return item ? JSON.parse(item) : null;
-        } catch (e) {
-            console.error('讀取資料失敗:', e);
-            return null;
-        }
-    },
-    set: (key, value) => {
-        try {
-            localStorage.setItem(key, JSON.stringify(value));
-            return true;
-        } catch (e) {
-            console.error('儲存資料失敗:', e);
-            // 儲存空間滿了或被禁用
-            if (e.name === 'QuotaExceededError') {
-                alert('儲存空間已滿，請清理舊資料');
-            }
-            return false;
-        }
-    },
-    remove: (key) => {
-        try {
-            localStorage.removeItem(key);
-            return true;
-        } catch (e) {
-            return false;
-        }
-    }
+get: (key) => {
+try {
+const item = localStorage.getItem(key);
+return item ? JSON.parse(item) : null;
+} catch (e) {
+console.error(‘讀取資料失敗:’, e);
+return null;
+}
+},
+set: (key, value) => {
+try {
+localStorage.setItem(key, JSON.stringify(value));
+return true;
+} catch (e) {
+console.error(‘儲存資料失敗:’, e);
+// 儲存空間滿了或被禁用
+if (e.name === ‘QuotaExceededError’) {
+alert(‘儲存空間已滿，請清理舊資料’);
+}
+return false;
+}
+},
+remove: (key) => {
+try {
+localStorage.removeItem(key);
+return true;
+} catch (e) {
+return false;
+}
+}
 };
 
 // ============================================
 // SVG 圖標元件（取代 lucide-react）
 // ============================================
-const Icon = ({ name, size = 20, className = '' }) => {
-    const icons = {
-        play: 'M8 5v14l11-7z',
-        pause: 'M6 19h4V5H6v14zm8-14v14h4V5h-4z',
-        chevronRight: 'M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z',
-        info: 'M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z',
-        trendUp: 'M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6h-6z',
-        x: 'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z',
-        settings: 'M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z',
-        refresh: 'M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z',
-        filter: 'M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z',
-        check: 'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z',
-        clock: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z',
-        dumbbell: 'M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z',
-        arrowLeft: 'M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z',
-        save: 'M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z',
-    };
-    return React.createElement('svg', {
-        width: size,
-        height: size,
-        viewBox: '0 0 24 24',
-        fill: 'currentColor',
-        className: className,
-        style: { display: 'inline-block', verticalAlign: 'middle' }
-    }, React.createElement('path', { d: icons[name] || icons.info }));
+const Icon = ({ name, size = 20, className = ‘’ }) => {
+const icons = {
+play: ‘M8 5v14l11-7z’,
+pause: ‘M6 19h4V5H6v14zm8-14v14h4V5h-4z’,
+chevronRight: ‘M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z’,
+info: ‘M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z’,
+trendUp: ‘M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6h-6z’,
+x: ‘M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z’,
+settings: ‘M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z’,
+refresh: ‘M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z’,
+filter: ‘M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z’,
+check: ‘M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z’,
+clock: ‘M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z’,
+dumbbell: ‘M20.57 14.86L22 13.43 20.57 12 17 15.57 8.43 7 12 3.43 10.57 2 9.14 3.43 7.71 2 5.57 4.14 4.14 2.71 2.71 4.14l1.43 1.43L2 7.71l1.43 1.43L2 10.57 3.43 12 7 8.43 15.57 17 12 20.57 13.43 22l1.43-1.43L16.29 22l2.14-2.14 1.43 1.43 1.43-1.43-1.43-1.43L22 16.29z’,
+arrowLeft: ‘M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z’,
+save: ‘M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z’,
+};
+return React.createElement(‘svg’, {
+width: size,
+height: size,
+viewBox: ‘0 0 24 24’,
+fill: ‘currentColor’,
+className: className,
+style: { display: ‘inline-block’, verticalAlign: ‘middle’ }
+}, React.createElement(‘path’, { d: icons[name] || icons.info }));
 };
 
 // ============================================
 // 肌肉群顏色配置
 // ============================================
 const muscleColors = {
-    '胸': { bg: 'bg-rose-500/20', border: 'border-rose-500/50', text: 'text-rose-300' },
-    '背': { bg: 'bg-blue-500/20', border: 'border-blue-500/50', text: 'text-blue-300' },
-    '肩': { bg: 'bg-amber-500/20', border: 'border-amber-500/50', text: 'text-amber-300' },
-    '腿': { bg: 'bg-emerald-500/20', border: 'border-emerald-500/50', text: 'text-emerald-300' },
-    '臀': { bg: 'bg-teal-500/20', border: 'border-teal-500/50', text: 'text-teal-300' },
-    '核心': { bg: 'bg-orange-500/20', border: 'border-orange-500/50', text: 'text-orange-300' },
-    '手臂': { bg: 'bg-purple-500/20', border: 'border-purple-500/50', text: 'text-purple-300' },
-    '全身': { bg: 'bg-cyan-500/20', border: 'border-cyan-500/50', text: 'text-cyan-300' },
+‘胸’: { bg: ‘bg-rose-500/20’, border: ‘border-rose-500/50’, text: ‘text-rose-300’ },
+‘背’: { bg: ‘bg-blue-500/20’, border: ‘border-blue-500/50’, text: ‘text-blue-300’ },
+‘肩’: { bg: ‘bg-amber-500/20’, border: ‘border-amber-500/50’, text: ‘text-amber-300’ },
+‘腿’: { bg: ‘bg-emerald-500/20’, border: ‘border-emerald-500/50’, text: ‘text-emerald-300’ },
+‘臀’: { bg: ‘bg-teal-500/20’, border: ‘border-teal-500/50’, text: ‘text-teal-300’ },
+‘核心’: { bg: ‘bg-orange-500/20’, border: ‘border-orange-500/50’, text: ‘text-orange-300’ },
+‘手臂’: { bg: ‘bg-purple-500/20’, border: ‘border-purple-500/50’, text: ‘text-purple-300’ },
+‘全身’: { bg: ‘bg-cyan-500/20’, border: ‘border-cyan-500/50’, text: ‘text-cyan-300’ },
 };
 
 // ============================================
 // 動作資料庫
 // ============================================
 const exerciseDB = {
-    '啞鈴胸推': { primary: ['胸'], secondary: ['肩', '手臂'], primaryDetail: '胸大肌', secondaryDetail: '三角肌前束、三頭肌', equipment: ['啞鈴'], category: 'push', region: 'upper', difficulty: 2, defaultReps: '10-12', defaultWeight: '12kg', defaultRest: 60, tips: ['肘部45-60°角', '啞鈴在乳頭高度', '核心收緊', '控制下降速度（2秒下，1秒推）', '推起時呼氣'], safety: '避免肘部向外張開太寬（>90°）' },
-    '啞鈴上斜推舉': { primary: ['胸'], secondary: ['肩', '手臂'], primaryDetail: '上胸（鎖骨部）', secondaryDetail: '三角肌前束、三頭肌', equipment: ['啞鈴'], category: 'push', region: 'upper', difficulty: 2, defaultReps: '10-12', defaultWeight: '10kg', defaultRest: 60, tips: ['上身躺在30-45°斜面（可用沙發靠背）', '啞鈴推向頭頂方向', '上胸感受擠壓', '控制下降', '推起時呼氣'], safety: '避免太陡（>60°）會變成肩推' },
-    '伏地挺身': { primary: ['胸'], secondary: ['肩', '手臂', '核心'], primaryDetail: '胸大肌', secondaryDetail: '三角肌前束、三頭肌、核心', equipment: ['自重'], category: 'push', region: 'upper', difficulty: 2, defaultReps: '8-15', defaultWeight: '自重', defaultRest: 45, tips: ['身體保持一直線', '肘部接近身體', '下降至胸部接近地面', '核心全程收緊', '推起時呼氣'], safety: '避免臀部下沉或過度上抬' },
-    '鑽石伏地挺身': { primary: ['手臂'], secondary: ['胸', '肩'], primaryDetail: '三頭肌', secondaryDetail: '胸大肌內側、三角肌前束', equipment: ['自重'], category: 'push', region: 'upper', difficulty: 3, defaultReps: '6-10', defaultWeight: '自重', defaultRest: 60, tips: ['雙手成菱形（食指拇指相觸）', '手在胸口正下方', '肘部緊貼身體', '緩慢下降', '推起時呼氣'], safety: '初學者可改用膝蓋著地版本' },
-    '啞鈴飛鳥': { primary: ['胸'], secondary: ['肩'], primaryDetail: '胸大肌（外側）', secondaryDetail: '三角肌前束', equipment: ['啞鈴'], category: 'push', region: 'upper', difficulty: 2, defaultReps: '10-12', defaultWeight: '8kg', defaultRest: 60, tips: ['平躺，啞鈴舉於胸口正上方', '肘部微彎並固定', '雙臂張開如擁抱', '感受胸肌伸展', '收回時呼氣'], safety: '避免肘部完全打直（會傷到肩關節）' },
-    '啞鈴划船': { primary: ['背'], secondary: ['手臂', '肩'], primaryDetail: '闊背肌、菱形肌', secondaryDetail: '二頭肌、後三角肌', equipment: ['啞鈴'], category: 'pull', region: 'upper', difficulty: 2, defaultReps: '10-12', defaultWeight: '12kg', defaultRest: 60, tips: ['身體前傾45°', '啞鈴貼近身體上升', '肩胛骨後縮', '感受背肌收縮', '上升時呼氣'], safety: '避免過度轉身或圓背' },
-    '啞鈴單臂划船': { primary: ['背'], secondary: ['手臂', '核心'], primaryDetail: '闊背肌、菱形肌', secondaryDetail: '二頭肌、核心', equipment: ['啞鈴'], category: 'pull', region: 'upper', difficulty: 2, defaultReps: '10-12', defaultWeight: '15kg', defaultRest: 60, tips: ['一手撐椅子/床支撐', '另一手拿啞鈴', '啞鈴拉到腰側', '肩胛骨後縮', '兩邊各做一組'], safety: '保持背部直線，避免脊椎旋轉' },
-    '啞鈴反向飛鳥': { primary: ['背'], secondary: ['肩'], primaryDetail: '中背肌、菱形肌', secondaryDetail: '後三角肌', equipment: ['啞鈴'], category: 'pull', region: 'upper', difficulty: 2, defaultReps: '12-15', defaultWeight: '8kg', defaultRest: 45, tips: ['身體前傾45°', '啞鈴自然下垂', '肘部微彎', '雙臂向兩側展開', '感受肩胛骨夾緊'], safety: '使用較輕重量，重點是控制' },
-    '啞鈴硬舉': { primary: ['背', '腿', '臀'], secondary: ['核心'], primaryDetail: '腿後肌群、臀大肌、下背', secondaryDetail: '核心、上背', equipment: ['啞鈴'], category: 'pull', region: 'full', difficulty: 3, defaultReps: '10-12', defaultWeight: '15kg', defaultRest: 75, tips: ['背部保持直線', '啞鈴貼著腿', '臀部高於膝蓋（起始）', '推動腳跟、夾臀推起', '舉起時呼氣'], safety: '⚠️ 絕對避免圓背！這是最容易傷腰的動作' },
-    '啞鈴肩推': { primary: ['肩'], secondary: ['手臂', '核心'], primaryDetail: '三角肌（全部）', secondaryDetail: '三頭肌、核心穩定', equipment: ['啞鈴'], category: 'push', region: 'upper', difficulty: 2, defaultReps: '10-12', defaultWeight: '10kg', defaultRest: 60, tips: ['啞鈴在肩膀高度', '核心收緊', '垂直推起', '頂部停頓1秒', '推起時呼氣'], safety: '避免拱背或頭向前突出' },
-    '啞鈴側平舉': { primary: ['肩'], secondary: [], primaryDetail: '三角肌中束', secondaryDetail: '上斜方肌（次要）', equipment: ['啞鈴'], category: 'push', region: 'upper', difficulty: 1, defaultReps: '12-15', defaultWeight: '5kg', defaultRest: 45, tips: ['輕重量、慢動作', '啞鈴舉至與肩同高', '小指略高於拇指', '控制下降', '不要靠慣性'], safety: '太重會用斜方肌代償' },
-    '啞鈴前平舉': { primary: ['肩'], secondary: [], primaryDetail: '三角肌前束', secondaryDetail: '', equipment: ['啞鈴'], category: 'push', region: 'upper', difficulty: 1, defaultReps: '12-15', defaultWeight: '5kg', defaultRest: 45, tips: ['啞鈴向前舉至肩高', '輪流舉左右手', '保持身體穩定', '緩慢下降'], safety: '避免擺動身體借力' },
-    '啞鈴二頭彎舉': { primary: ['手臂'], secondary: [], primaryDetail: '二頭肌', secondaryDetail: '', equipment: ['啞鈴'], category: 'pull', region: 'upper', difficulty: 1, defaultReps: '10-12', defaultWeight: '8kg', defaultRest: 45, tips: ['手肘貼近身體', '掌心朝上', '緩慢上舉', '頂部停頓擠壓', '緩慢下放'], safety: '避免擺動身體' },
-    '啞鈴錘式彎舉': { primary: ['手臂'], secondary: [], primaryDetail: '二頭肌、肱橈肌', secondaryDetail: '前臂', equipment: ['啞鈴'], category: 'pull', region: 'upper', difficulty: 1, defaultReps: '10-12', defaultWeight: '8kg', defaultRest: 45, tips: ['掌心朝向身體', '像握錘子一樣', '手肘固定', '上下控制'], safety: '避免擺動或彎腰' },
-    '啞鈴三頭伸展': { primary: ['手臂'], secondary: [], primaryDetail: '三頭肌', secondaryDetail: '', equipment: ['啞鈴'], category: 'push', region: 'upper', difficulty: 2, defaultReps: '10-12', defaultWeight: '8kg', defaultRest: 45, tips: ['雙手握一個啞鈴舉過頭頂', '手肘固定指向天花板', '只動前臂', '下放至腦後', '推起時呼氣'], safety: '避免手肘外開，會給肩膀壓力' },
-    '啞鈴深蹲': { primary: ['腿', '臀'], secondary: ['核心'], primaryDetail: '股四頭肌、臀大肌', secondaryDetail: '腿後肌、核心', equipment: ['啞鈴'], category: 'legs', region: 'lower', difficulty: 2, defaultReps: '12-15', defaultWeight: '15kg', defaultRest: 60, tips: ['膝蓋對齐腳尖方向', '胸口挺起', '重心在腳跟', '深度膝蓋≥90°', '推起時呼氣'], safety: '避免膝蓋內扣' },
-    '啞鈴酒杯式深蹲': { primary: ['腿', '臀'], secondary: ['核心'], primaryDetail: '股四頭肌、臀大肌', secondaryDetail: '上背、核心', equipment: ['啞鈴'], category: 'legs', region: 'lower', difficulty: 1, defaultReps: '12-15', defaultWeight: '15kg', defaultRest: 60, tips: ['雙手捧著一個啞鈴在胸前', '像握酒杯一樣', '深蹲到大腿平行地面', '保持上身直立', '推起時呼氣'], safety: '初學者最佳深蹲變化動作' },
-    '啞鈴弓步蹲': { primary: ['腿', '臀'], secondary: ['核心'], primaryDetail: '股四頭肌、臀大肌', secondaryDetail: '腿後肌、核心穩定', equipment: ['啞鈴'], category: 'legs', region: 'lower', difficulty: 2, defaultReps: '10/邊', defaultWeight: '10kg', defaultRest: 60, tips: ['前後腳分開一大步', '前腿膝蓋彎至90°', '後膝接近地面', '上身保持直立', '兩邊輪流'], safety: '前膝不要超過腳尖太多' },
-    '啞鈴保加利亞分腿蹲': { primary: ['腿', '臀'], secondary: ['核心'], primaryDetail: '股四頭肌、臀大肌', secondaryDetail: '核心穩定', equipment: ['啞鈴'], category: 'legs', region: 'lower', difficulty: 3, defaultReps: '10/邊', defaultWeight: '12kg', defaultRest: 60, tips: ['後腳放椅子或床上', '前腿膝蓋彎至90°', '身體保持直立', '感受前腿股四頭肌', '兩邊各做一組'], safety: '需要平衡感，可扶牆練習' },
-    '啞鈴側弓步': { primary: ['腿', '臀'], secondary: [], primaryDetail: '股四頭肌、內收肌', secondaryDetail: '臀中肌', equipment: ['啞鈴'], category: 'legs', region: 'lower', difficulty: 2, defaultReps: '10/邊', defaultWeight: '10kg', defaultRest: 45, tips: ['雙手持啞鈴', '一邊大步側跨', '蹲下時腳尖朝前', '伸直腿打直', '感受內側大腿伸展'], safety: '熱身充分，避免拉傷內收肌' },
-    '啞鈴羅馬尼亞硬舉': { primary: ['腿', '臀'], secondary: ['背'], primaryDetail: '腿後肌群、臀大肌', secondaryDetail: '下背', equipment: ['啞鈴'], category: 'legs', region: 'lower', difficulty: 2, defaultReps: '10-12', defaultWeight: '15kg', defaultRest: 60, tips: ['膝蓋微彎並固定', '臀部往後推', '啞鈴貼著腿往下', '感受腿後拉伸', '夾臀起身'], safety: '保持背部直線，腰椎自然弧度' },
-    '臀橋': { primary: ['臀'], secondary: ['腿', '核心'], primaryDetail: '臀大肌', secondaryDetail: '腿後肌、核心', equipment: ['自重'], category: 'legs', region: 'lower', difficulty: 1, defaultReps: '15-20', defaultWeight: '自重', defaultRest: 45, tips: ['肩膀平貼地面', '膝蓋彎90°', '夾臀向上推', '頂部停頓2秒', '緩慢下降'], safety: '用臀部發力，不是腰部' },
-    '單腿臀橋': { primary: ['臀'], secondary: ['腿', '核心'], primaryDetail: '臀大肌', secondaryDetail: '腿後肌、核心穩定', equipment: ['自重'], category: 'legs', region: 'lower', difficulty: 2, defaultReps: '10/邊', defaultWeight: '自重', defaultRest: 45, tips: ['一腳抬起', '另一腳推地', '單側臀部發力', '保持骨盆水平', '兩邊輪流'], safety: '比雙腿版本難，先掌握雙腿版' },
-    '小腿提踵': { primary: ['腿'], secondary: [], primaryDetail: '小腿肌（腓腸肌）', secondaryDetail: '', equipment: ['啞鈴'], category: 'legs', region: 'lower', difficulty: 1, defaultReps: '15-20', defaultWeight: '10kg', defaultRest: 30, tips: ['可雙手持啞鈴', '腳尖站在台階上（腳跟懸空）', '緩慢提起腳跟', '頂部停頓擠壓', '完整下降伸展'], safety: '腳跟下降時不要彈起' },
-    '平板支撐': { primary: ['核心'], secondary: ['肩'], primaryDetail: '腹直肌、腹橫肌', secondaryDetail: '肩、臀', equipment: ['瑜伽墊'], category: 'core', region: 'core', difficulty: 1, defaultReps: '30-60秒', defaultWeight: '自重', defaultRest: 30, tips: ['身體保持一直線', '肘部在肩膀正下方', '核心收緊', '正常呼吸', '臀部不要下沉或翹起'], safety: '質量比時間重要' },
-    '側平板': { primary: ['核心'], secondary: ['肩'], primaryDetail: '腹斜肌、腹橫肌', secondaryDetail: '肩部穩定', equipment: ['瑜伽墊'], category: 'core', region: 'core', difficulty: 2, defaultReps: '30秒/邊', defaultWeight: '自重', defaultRest: 30, tips: ['側躺，用一隻肘支撐', '身體成直線', '臀部抬起', '頂部腿可疊在底腿上', '兩邊各做'], safety: '感覺肩痛應停止' },
-    '捲腹': { primary: ['核心'], secondary: [], primaryDetail: '腹直肌（上腹）', secondaryDetail: '', equipment: ['瑜伽墊'], category: 'core', region: 'core', difficulty: 1, defaultReps: '15-20', defaultWeight: '自重', defaultRest: 30, tips: ['平躺屈膝', '雙手放胸前或耳側', '肩膀離地30°', '感受腹肌收縮', '不是用脖子拉'], safety: '不要用力拉脖子，避免頸椎傷' },
-    '俄羅斯轉體': { primary: ['核心'], secondary: [], primaryDetail: '腹斜肌', secondaryDetail: '腹直肌', equipment: ['啞鈴'], category: 'core', region: 'core', difficulty: 2, defaultReps: '20（10/邊）', defaultWeight: '5kg', defaultRest: 30, tips: ['坐姿，膝蓋彎曲', '上身後傾45°', '雙手捧啞鈴', '左右轉動觸地', '腳可離地增加難度'], safety: '保持背部直線' },
-    '死蟲式': { primary: ['核心'], secondary: [], primaryDetail: '腹橫肌、核心穩定', secondaryDetail: '', equipment: ['瑜伽墊'], category: 'core', region: 'core', difficulty: 1, defaultReps: '10/邊', defaultWeight: '自重', defaultRest: 30, tips: ['平躺，雙腳90°抬起', '雙手向上伸直', '對角線伸展（左手+右腳）', '腰貼地面', '緩慢控制'], safety: '腰不能離開地面' },
-    '鳥狗式': { primary: ['核心'], secondary: ['背', '臀'], primaryDetail: '核心穩定、下背', secondaryDetail: '臀肌', equipment: ['瑜伽墊'], category: 'core', region: 'core', difficulty: 1, defaultReps: '10/邊', defaultWeight: '自重', defaultRest: 30, tips: ['四足跪姿', '對角線伸展（左手+右腳）', '保持平衡', '頂部停頓2秒', '緩慢回到起始'], safety: '保持身體穩定，不要扭轉' },
-    '啞鈴抓舉': { primary: ['全身'], secondary: ['肩', '腿'], primaryDetail: '全身爆發力', secondaryDetail: '肩、腿、背', equipment: ['啞鈴'], category: 'full_body', region: 'full', difficulty: 3, defaultReps: '8-10', defaultWeight: '10kg', defaultRest: 60, tips: ['啞鈴從膝蓋位置開始', '快速爆發力上舉', '完整伸展肘部', '控制下降', '訓練全身協調'], safety: '初學者應先學會徒手版本' },
-    '啞鈴推舉深蹲': { primary: ['全身'], secondary: ['腿', '肩'], primaryDetail: '腿+肩（複合動作）', secondaryDetail: '核心', equipment: ['啞鈴'], category: 'full_body', region: 'full', difficulty: 2, defaultReps: '10-12', defaultWeight: '10kg', defaultRest: 60, tips: ['啞鈴在肩高', '深蹲下', '推起並推舉啞鈴過頭', '一個流暢動作', '推起時呼氣'], safety: '初學重量輕，重點動作流暢' },
-    '波比跳': { primary: ['全身'], secondary: [], primaryDetail: '全身有氧+力量', secondaryDetail: '', equipment: ['自重'], category: 'full_body', region: 'full', difficulty: 3, defaultReps: '10', defaultWeight: '自重', defaultRest: 60, tips: ['深蹲', '雙手撐地', '雙腳向後跳成伏地挺身位置', '可加一下伏地挺身', '收回腳，跳起拍手'], safety: '高強度，注意呼吸節奏' },
-    '開合跳': { primary: ['全身'], secondary: [], primaryDetail: '心肺', secondaryDetail: '', equipment: ['自重'], category: 'full_body', region: 'full', difficulty: 1, defaultReps: '30秒', defaultWeight: '自重', defaultRest: 30, tips: ['雙腳並攏，雙手在身體兩側', '同時跳開雙腳並舉雙手過頭', '回到起始位置', '保持節奏'], safety: '注意膝蓋落地緩衝' },
-    '跳躍深蹲': { primary: ['腿'], secondary: ['全身'], primaryDetail: '股四頭肌、臀大肌（爆發）', secondaryDetail: '心肺', equipment: ['自重'], category: 'full_body', region: 'full', difficulty: 2, defaultReps: '10-12', defaultWeight: '自重', defaultRest: 45, tips: ['深蹲下', '爆發力跳起', '輕緩落地', '立即下一個', '注意膝蓋緩衝'], safety: '膝蓋有問題者避免' },
-    '高抬腿': { primary: ['全身'], secondary: ['核心'], primaryDetail: '心肺、核心', secondaryDetail: '腿', equipment: ['自重'], category: 'full_body', region: 'full', difficulty: 1, defaultReps: '30秒', defaultWeight: '自重', defaultRest: 30, tips: ['原地跑步', '膝蓋盡量抬到腰高', '雙手自然擺動', '快速節奏', '保持挺胸'], safety: '強度自我調整' },
-    '登山者': { primary: ['核心'], secondary: ['全身'], primaryDetail: '核心、心肺', secondaryDetail: '肩、腿', equipment: ['瑜伽墊'], category: 'full_body', region: 'full', difficulty: 2, defaultReps: '30秒', defaultWeight: '自重', defaultRest: 30, tips: ['伏地挺身位置', '輪流抬膝至胸口', '快速節奏', '臀部不要翹起', '核心收緊'], safety: '保持身體一直線' },
+‘啞鈴胸推’: { englishName: ‘dumbbell bench press’, primary: [‘胸’], secondary: [‘肩’, ‘手臂’], primaryDetail: ‘胸大肌’, secondaryDetail: ‘三角肌前束、三頭肌’, equipment: [‘啞鈴’], category: ‘push’, region: ‘upper’, difficulty: 2, defaultReps: ‘10-12’, defaultWeight: ‘12kg’, defaultRest: 60, tips: [‘肘部45-60°角’, ‘啞鈴在乳頭高度’, ‘核心收緊’, ‘控制下降速度（2秒下，1秒推）’, ‘推起時呼氣’], safety: ‘避免肘部向外張開太寬（>90°）’ },
+‘啞鈴上斜推舉’: { englishName: ‘dumbbell incline press’, primary: [‘胸’], secondary: [‘肩’, ‘手臂’], primaryDetail: ‘上胸（鎖骨部）’, secondaryDetail: ‘三角肌前束、三頭肌’, equipment: [‘啞鈴’], category: ‘push’, region: ‘upper’, difficulty: 2, defaultReps: ‘10-12’, defaultWeight: ‘10kg’, defaultRest: 60, tips: [‘上身躺在30-45°斜面（可用沙發靠背）’, ‘啞鈴推向頭頂方向’, ‘上胸感受擠壓’, ‘控制下降’, ‘推起時呼氣’], safety: ‘避免太陡（>60°）會變成肩推’ },
+‘伏地挺身’: { englishName: ‘pushup proper form’, primary: [‘胸’], secondary: [‘肩’, ‘手臂’, ‘核心’], primaryDetail: ‘胸大肌’, secondaryDetail: ‘三角肌前束、三頭肌、核心’, equipment: [‘自重’], category: ‘push’, region: ‘upper’, difficulty: 2, defaultReps: ‘8-15’, defaultWeight: ‘自重’, defaultRest: 45, tips: [‘身體保持一直線’, ‘肘部接近身體’, ‘下降至胸部接近地面’, ‘核心全程收緊’, ‘推起時呼氣’], safety: ‘避免臀部下沉或過度上抬’ },
+‘鑽石伏地挺身’: { englishName: ‘diamond push up’, primary: [‘手臂’], secondary: [‘胸’, ‘肩’], primaryDetail: ‘三頭肌’, secondaryDetail: ‘胸大肌內側、三角肌前束’, equipment: [‘自重’], category: ‘push’, region: ‘upper’, difficulty: 3, defaultReps: ‘6-10’, defaultWeight: ‘自重’, defaultRest: 60, tips: [‘雙手成菱形（食指拇指相觸）’, ‘手在胸口正下方’, ‘肘部緊貼身體’, ‘緩慢下降’, ‘推起時呼氣’], safety: ‘初學者可改用膝蓋著地版本’ },
+‘啞鈴飛鳥’: { englishName: ‘dumbbell chest fly’, primary: [‘胸’], secondary: [‘肩’], primaryDetail: ‘胸大肌（外側）’, secondaryDetail: ‘三角肌前束’, equipment: [‘啞鈴’], category: ‘push’, region: ‘upper’, difficulty: 2, defaultReps: ‘10-12’, defaultWeight: ‘8kg’, defaultRest: 60, tips: [‘平躺，啞鈴舉於胸口正上方’, ‘肘部微彎並固定’, ‘雙臂張開如擁抱’, ‘感受胸肌伸展’, ‘收回時呼氣’], safety: ‘避免肘部完全打直（會傷到肩關節）’ },
+‘啞鈴划船’: { englishName: ‘dumbbell row’, primary: [‘背’], secondary: [‘手臂’, ‘肩’], primaryDetail: ‘闊背肌、菱形肌’, secondaryDetail: ‘二頭肌、後三角肌’, equipment: [‘啞鈴’], category: ‘pull’, region: ‘upper’, difficulty: 2, defaultReps: ‘10-12’, defaultWeight: ‘12kg’, defaultRest: 60, tips: [‘身體前傾45°’, ‘啞鈴貼近身體上升’, ‘肩胛骨後縮’, ‘感受背肌收縮’, ‘上升時呼氣’], safety: ‘避免過度轉身或圓背’ },
+‘啞鈴單臂划船’: { englishName: ‘one arm dumbbell row’, primary: [‘背’], secondary: [‘手臂’, ‘核心’], primaryDetail: ‘闊背肌、菱形肌’, secondaryDetail: ‘二頭肌、核心’, equipment: [‘啞鈴’], category: ‘pull’, region: ‘upper’, difficulty: 2, defaultReps: ‘10-12’, defaultWeight: ‘15kg’, defaultRest: 60, tips: [‘一手撐椅子/床支撐’, ‘另一手拿啞鈴’, ‘啞鈴拉到腰側’, ‘肩胛骨後縮’, ‘兩邊各做一組’], safety: ‘保持背部直線，避免脊椎旋轉’ },
+‘啞鈴反向飛鳥’: { englishName: ‘reverse dumbbell fly’, primary: [‘背’], secondary: [‘肩’], primaryDetail: ‘中背肌、菱形肌’, secondaryDetail: ‘後三角肌’, equipment: [‘啞鈴’], category: ‘pull’, region: ‘upper’, difficulty: 2, defaultReps: ‘12-15’, defaultWeight: ‘8kg’, defaultRest: 45, tips: [‘身體前傾45°’, ‘啞鈴自然下垂’, ‘肘部微彎’, ‘雙臂向兩側展開’, ‘感受肩胛骨夾緊’], safety: ‘使用較輕重量，重點是控制’ },
+‘啞鈴硬舉’: { englishName: ‘dumbbell deadlift’, primary: [‘背’, ‘腿’, ‘臀’], secondary: [‘核心’], primaryDetail: ‘腿後肌群、臀大肌、下背’, secondaryDetail: ‘核心、上背’, equipment: [‘啞鈴’], category: ‘pull’, region: ‘full’, difficulty: 3, defaultReps: ‘10-12’, defaultWeight: ‘15kg’, defaultRest: 75, tips: [‘背部保持直線’, ‘啞鈴貼著腿’, ‘臀部高於膝蓋（起始）’, ‘推動腳跟、夾臀推起’, ‘舉起時呼氣’], safety: ‘⚠️ 絕對避免圓背！這是最容易傷腰的動作’ },
+‘啞鈴肩推’: { englishName: ‘dumbbell shoulder press’, primary: [‘肩’], secondary: [‘手臂’, ‘核心’], primaryDetail: ‘三角肌（全部）’, secondaryDetail: ‘三頭肌、核心穩定’, equipment: [‘啞鈴’], category: ‘push’, region: ‘upper’, difficulty: 2, defaultReps: ‘10-12’, defaultWeight: ‘10kg’, defaultRest: 60, tips: [‘啞鈴在肩膀高度’, ‘核心收緊’, ‘垂直推起’, ‘頂部停頓1秒’, ‘推起時呼氣’], safety: ‘避免拱背或頭向前突出’ },
+‘啞鈴側平舉’: { englishName: ‘dumbbell lateral raise’, primary: [‘肩’], secondary: [], primaryDetail: ‘三角肌中束’, secondaryDetail: ‘上斜方肌（次要）’, equipment: [‘啞鈴’], category: ‘push’, region: ‘upper’, difficulty: 1, defaultReps: ‘12-15’, defaultWeight: ‘5kg’, defaultRest: 45, tips: [‘輕重量、慢動作’, ‘啞鈴舉至與肩同高’, ‘小指略高於拇指’, ‘控制下降’, ‘不要靠慣性’], safety: ‘太重會用斜方肌代償’ },
+‘啞鈴前平舉’: { englishName: ‘dumbbell front raise’, primary: [‘肩’], secondary: [], primaryDetail: ‘三角肌前束’, secondaryDetail: ‘’, equipment: [‘啞鈴’], category: ‘push’, region: ‘upper’, difficulty: 1, defaultReps: ‘12-15’, defaultWeight: ‘5kg’, defaultRest: 45, tips: [‘啞鈴向前舉至肩高’, ‘輪流舉左右手’, ‘保持身體穩定’, ‘緩慢下降’], safety: ‘避免擺動身體借力’ },
+‘啞鈴二頭彎舉’: { englishName: ‘dumbbell bicep curl’, primary: [‘手臂’], secondary: [], primaryDetail: ‘二頭肌’, secondaryDetail: ‘’, equipment: [‘啞鈴’], category: ‘pull’, region: ‘upper’, difficulty: 1, defaultReps: ‘10-12’, defaultWeight: ‘8kg’, defaultRest: 45, tips: [‘手肘貼近身體’, ‘掌心朝上’, ‘緩慢上舉’, ‘頂部停頓擠壓’, ‘緩慢下放’], safety: ‘避免擺動身體’ },
+‘啞鈴錘式彎舉’: { englishName: ‘hammer curl’, primary: [‘手臂’], secondary: [], primaryDetail: ‘二頭肌、肱橈肌’, secondaryDetail: ‘前臂’, equipment: [‘啞鈴’], category: ‘pull’, region: ‘upper’, difficulty: 1, defaultReps: ‘10-12’, defaultWeight: ‘8kg’, defaultRest: 45, tips: [‘掌心朝向身體’, ‘像握錘子一樣’, ‘手肘固定’, ‘上下控制’], safety: ‘避免擺動或彎腰’ },
+‘啞鈴三頭伸展’: { englishName: ‘dumbbell tricep extension’, primary: [‘手臂’], secondary: [], primaryDetail: ‘三頭肌’, secondaryDetail: ‘’, equipment: [‘啞鈴’], category: ‘push’, region: ‘upper’, difficulty: 2, defaultReps: ‘10-12’, defaultWeight: ‘8kg’, defaultRest: 45, tips: [‘雙手握一個啞鈴舉過頭頂’, ‘手肘固定指向天花板’, ‘只動前臂’, ‘下放至腦後’, ‘推起時呼氣’], safety: ‘避免手肘外開，會給肩膀壓力’ },
+‘啞鈴深蹲’: { englishName: ‘dumbbell squat’, primary: [‘腿’, ‘臀’], secondary: [‘核心’], primaryDetail: ‘股四頭肌、臀大肌’, secondaryDetail: ‘腿後肌、核心’, equipment: [‘啞鈴’], category: ‘legs’, region: ‘lower’, difficulty: 2, defaultReps: ‘12-15’, defaultWeight: ‘15kg’, defaultRest: 60, tips: [‘膝蓋對齐腳尖方向’, ‘胸口挺起’, ‘重心在腳跟’, ‘深度膝蓋≥90°’, ‘推起時呼氣’], safety: ‘避免膝蓋內扣’ },
+‘啞鈴酒杯式深蹲’: { englishName: ‘goblet squat’, primary: [‘腿’, ‘臀’], secondary: [‘核心’], primaryDetail: ‘股四頭肌、臀大肌’, secondaryDetail: ‘上背、核心’, equipment: [‘啞鈴’], category: ‘legs’, region: ‘lower’, difficulty: 1, defaultReps: ‘12-15’, defaultWeight: ‘15kg’, defaultRest: 60, tips: [‘雙手捧著一個啞鈴在胸前’, ‘像握酒杯一樣’, ‘深蹲到大腿平行地面’, ‘保持上身直立’, ‘推起時呼氣’], safety: ‘初學者最佳深蹲變化動作’ },
+‘啞鈴弓步蹲’: { englishName: ‘dumbbell lunge’, primary: [‘腿’, ‘臀’], secondary: [‘核心’], primaryDetail: ‘股四頭肌、臀大肌’, secondaryDetail: ‘腿後肌、核心穩定’, equipment: [‘啞鈴’], category: ‘legs’, region: ‘lower’, difficulty: 2, defaultReps: ‘10/邊’, defaultWeight: ‘10kg’, defaultRest: 60, tips: [‘前後腳分開一大步’, ‘前腿膝蓋彎至90°’, ‘後膝接近地面’, ‘上身保持直立’, ‘兩邊輪流’], safety: ‘前膝不要超過腳尖太多’ },
+‘啞鈴保加利亞分腿蹲’: { englishName: ‘bulgarian split squat’, primary: [‘腿’, ‘臀’], secondary: [‘核心’], primaryDetail: ‘股四頭肌、臀大肌’, secondaryDetail: ‘核心穩定’, equipment: [‘啞鈴’], category: ‘legs’, region: ‘lower’, difficulty: 3, defaultReps: ‘10/邊’, defaultWeight: ‘12kg’, defaultRest: 60, tips: [‘後腳放椅子或床上’, ‘前腿膝蓋彎至90°’, ‘身體保持直立’, ‘感受前腿股四頭肌’, ‘兩邊各做一組’], safety: ‘需要平衡感，可扶牆練習’ },
+‘啞鈴側弓步’: { englishName: ‘lateral lunge’, primary: [‘腿’, ‘臀’], secondary: [], primaryDetail: ‘股四頭肌、內收肌’, secondaryDetail: ‘臀中肌’, equipment: [‘啞鈴’], category: ‘legs’, region: ‘lower’, difficulty: 2, defaultReps: ‘10/邊’, defaultWeight: ‘10kg’, defaultRest: 45, tips: [‘雙手持啞鈴’, ‘一邊大步側跨’, ‘蹲下時腳尖朝前’, ‘伸直腿打直’, ‘感受內側大腿伸展’], safety: ‘熱身充分，避免拉傷內收肌’ },
+‘啞鈴羅馬尼亞硬舉’: { englishName: ‘romanian deadlift’, primary: [‘腿’, ‘臀’], secondary: [‘背’], primaryDetail: ‘腿後肌群、臀大肌’, secondaryDetail: ‘下背’, equipment: [‘啞鈴’], category: ‘legs’, region: ‘lower’, difficulty: 2, defaultReps: ‘10-12’, defaultWeight: ‘15kg’, defaultRest: 60, tips: [‘膝蓋微彎並固定’, ‘臀部往後推’, ‘啞鈴貼著腿往下’, ‘感受腿後拉伸’, ‘夾臀起身’], safety: ‘保持背部直線，腰椎自然弧度’ },
+‘臀橋’: { englishName: ‘glute bridge’, primary: [‘臀’], secondary: [‘腿’, ‘核心’], primaryDetail: ‘臀大肌’, secondaryDetail: ‘腿後肌、核心’, equipment: [‘自重’], category: ‘legs’, region: ‘lower’, difficulty: 1, defaultReps: ‘15-20’, defaultWeight: ‘自重’, defaultRest: 45, tips: [‘肩膀平貼地面’, ‘膝蓋彎90°’, ‘夾臀向上推’, ‘頂部停頓2秒’, ‘緩慢下降’], safety: ‘用臀部發力，不是腰部’ },
+‘單腿臀橋’: { englishName: ‘single leg glute bridge’, primary: [‘臀’], secondary: [‘腿’, ‘核心’], primaryDetail: ‘臀大肌’, secondaryDetail: ‘腿後肌、核心穩定’, equipment: [‘自重’], category: ‘legs’, region: ‘lower’, difficulty: 2, defaultReps: ‘10/邊’, defaultWeight: ‘自重’, defaultRest: 45, tips: [‘一腳抬起’, ‘另一腳推地’, ‘單側臀部發力’, ‘保持骨盆水平’, ‘兩邊輪流’], safety: ‘比雙腿版本難，先掌握雙腿版’ },
+‘小腿提踵’: { englishName: ‘calf raise’, primary: [‘腿’], secondary: [], primaryDetail: ‘小腿肌（腓腸肌）’, secondaryDetail: ‘’, equipment: [‘啞鈴’], category: ‘legs’, region: ‘lower’, difficulty: 1, defaultReps: ‘15-20’, defaultWeight: ‘10kg’, defaultRest: 30, tips: [‘可雙手持啞鈴’, ‘腳尖站在台階上（腳跟懸空）’, ‘緩慢提起腳跟’, ‘頂部停頓擠壓’, ‘完整下降伸展’], safety: ‘腳跟下降時不要彈起’ },
+‘平板支撐’: { englishName: ‘plank proper form’, primary: [‘核心’], secondary: [‘肩’], primaryDetail: ‘腹直肌、腹橫肌’, secondaryDetail: ‘肩、臀’, equipment: [‘瑜伽墊’], category: ‘core’, region: ‘core’, difficulty: 1, defaultReps: ‘30-60秒’, defaultWeight: ‘自重’, defaultRest: 30, tips: [‘身體保持一直線’, ‘肘部在肩膀正下方’, ‘核心收緊’, ‘正常呼吸’, ‘臀部不要下沉或翹起’], safety: ‘質量比時間重要’ },
+‘側平板’: { englishName: ‘side plank’, primary: [‘核心’], secondary: [‘肩’], primaryDetail: ‘腹斜肌、腹橫肌’, secondaryDetail: ‘肩部穩定’, equipment: [‘瑜伽墊’], category: ‘core’, region: ‘core’, difficulty: 2, defaultReps: ‘30秒/邊’, defaultWeight: ‘自重’, defaultRest: 30, tips: [‘側躺，用一隻肘支撐’, ‘身體成直線’, ‘臀部抬起’, ‘頂部腿可疊在底腿上’, ‘兩邊各做’], safety: ‘感覺肩痛應停止’ },
+‘捲腹’: { englishName: ‘crunch proper form’, primary: [‘核心’], secondary: [], primaryDetail: ‘腹直肌（上腹）’, secondaryDetail: ‘’, equipment: [‘瑜伽墊’], category: ‘core’, region: ‘core’, difficulty: 1, defaultReps: ‘15-20’, defaultWeight: ‘自重’, defaultRest: 30, tips: [‘平躺屈膝’, ‘雙手放胸前或耳側’, ‘肩膀離地30°’, ‘感受腹肌收縮’, ‘不是用脖子拉’], safety: ‘不要用力拉脖子，避免頸椎傷’ },
+‘俄羅斯轉體’: { englishName: ‘russian twist’, primary: [‘核心’], secondary: [], primaryDetail: ‘腹斜肌’, secondaryDetail: ‘腹直肌’, equipment: [‘啞鈴’], category: ‘core’, region: ‘core’, difficulty: 2, defaultReps: ‘20（10/邊）’, defaultWeight: ‘5kg’, defaultRest: 30, tips: [‘坐姿，膝蓋彎曲’, ‘上身後傾45°’, ‘雙手捧啞鈴’, ‘左右轉動觸地’, ‘腳可離地增加難度’], safety: ‘保持背部直線’ },
+‘死蟲式’: { englishName: ‘dead bug exercise’, primary: [‘核心’], secondary: [], primaryDetail: ‘腹橫肌、核心穩定’, secondaryDetail: ‘’, equipment: [‘瑜伽墊’], category: ‘core’, region: ‘core’, difficulty: 1, defaultReps: ‘10/邊’, defaultWeight: ‘自重’, defaultRest: 30, tips: [‘平躺，雙腳90°抬起’, ‘雙手向上伸直’, ‘對角線伸展（左手+右腳）’, ‘腰貼地面’, ‘緩慢控制’], safety: ‘腰不能離開地面’ },
+‘鳥狗式’: { englishName: ‘bird dog exercise’, primary: [‘核心’], secondary: [‘背’, ‘臀’], primaryDetail: ‘核心穩定、下背’, secondaryDetail: ‘臀肌’, equipment: [‘瑜伽墊’], category: ‘core’, region: ‘core’, difficulty: 1, defaultReps: ‘10/邊’, defaultWeight: ‘自重’, defaultRest: 30, tips: [‘四足跪姿’, ‘對角線伸展（左手+右腳）’, ‘保持平衡’, ‘頂部停頓2秒’, ‘緩慢回到起始’], safety: ‘保持身體穩定，不要扭轉’ },
+‘啞鈴抓舉’: { englishName: ‘dumbbell snatch’, primary: [‘全身’], secondary: [‘肩’, ‘腿’], primaryDetail: ‘全身爆發力’, secondaryDetail: ‘肩、腿、背’, equipment: [‘啞鈴’], category: ‘full_body’, region: ‘full’, difficulty: 3, defaultReps: ‘8-10’, defaultWeight: ‘10kg’, defaultRest: 60, tips: [‘啞鈴從膝蓋位置開始’, ‘快速爆發力上舉’, ‘完整伸展肘部’, ‘控制下降’, ‘訓練全身協調’], safety: ‘初學者應先學會徒手版本’ },
+‘啞鈴推舉深蹲’: { englishName: ‘dumbbell thruster’, primary: [‘全身’], secondary: [‘腿’, ‘肩’], primaryDetail: ‘腿+肩（複合動作）’, secondaryDetail: ‘核心’, equipment: [‘啞鈴’], category: ‘full_body’, region: ‘full’, difficulty: 2, defaultReps: ‘10-12’, defaultWeight: ‘10kg’, defaultRest: 60, tips: [‘啞鈴在肩高’, ‘深蹲下’, ‘推起並推舉啞鈴過頭’, ‘一個流暢動作’, ‘推起時呼氣’], safety: ‘初學重量輕，重點動作流暢’ },
+‘波比跳’: { englishName: ‘burpee’, primary: [‘全身’], secondary: [], primaryDetail: ‘全身有氧+力量’, secondaryDetail: ‘’, equipment: [‘自重’], category: ‘full_body’, region: ‘full’, difficulty: 3, defaultReps: ‘10’, defaultWeight: ‘自重’, defaultRest: 60, tips: [‘深蹲’, ‘雙手撐地’, ‘雙腳向後跳成伏地挺身位置’, ‘可加一下伏地挺身’, ‘收回腳，跳起拍手’], safety: ‘高強度，注意呼吸節奏’ },
+‘開合跳’: { englishName: ‘jumping jacks’, primary: [‘全身’], secondary: [], primaryDetail: ‘心肺’, secondaryDetail: ‘’, equipment: [‘自重’], category: ‘full_body’, region: ‘full’, difficulty: 1, defaultReps: ‘30秒’, defaultWeight: ‘自重’, defaultRest: 30, tips: [‘雙腳並攏，雙手在身體兩側’, ‘同時跳開雙腳並舉雙手過頭’, ‘回到起始位置’, ‘保持節奏’], safety: ‘注意膝蓋落地緩衝’ },
+‘跳躍深蹲’: { englishName: ‘jump squat’, primary: [‘腿’], secondary: [‘全身’], primaryDetail: ‘股四頭肌、臀大肌（爆發）’, secondaryDetail: ‘心肺’, equipment: [‘自重’], category: ‘full_body’, region: ‘full’, difficulty: 2, defaultReps: ‘10-12’, defaultWeight: ‘自重’, defaultRest: 45, tips: [‘深蹲下’, ‘爆發力跳起’, ‘輕緩落地’, ‘立即下一個’, ‘注意膝蓋緩衝’], safety: ‘膝蓋有問題者避免’ },
+‘高抬腿’: { englishName: ‘high knees’, primary: [‘全身’], secondary: [‘核心’], primaryDetail: ‘心肺、核心’, secondaryDetail: ‘腿’, equipment: [‘自重’], category: ‘full_body’, region: ‘full’, difficulty: 1, defaultReps: ‘30秒’, defaultWeight: ‘自重’, defaultRest: 30, tips: [‘原地跑步’, ‘膝蓋盡量抬到腰高’, ‘雙手自然擺動’, ‘快速節奏’, ‘保持挺胸’], safety: ‘強度自我調整’ },
+‘登山者’: { englishName: ‘mountain climbers’, primary: [‘核心’], secondary: [‘全身’], primaryDetail: ‘核心、心肺’, secondaryDetail: ‘肩、腿’, equipment: [‘瑜伽墊’], category: ‘full_body’, region: ‘full’, difficulty: 2, defaultReps: ‘30秒’, defaultWeight: ‘自重’, defaultRest: 30, tips: [‘伏地挺身位置’, ‘輪流抬膝至胸口’, ‘快速節奏’, ‘臀部不要翹起’, ‘核心收緊’], safety: ‘保持身體一直線’ },
 };
 
 // ============================================
 // 訓練模板
 // ============================================
 const defaultTemplates = {
-    monday: { name: '上肢推 + 代謝', icon: '💪', region: 'upper', focus: '胸、肩、三頭', exercises: ['啞鈴胸推', '啞鈴肩推', '伏地挺身', '啞鈴側平舉'] },
-    tuesday: { name: '下肢 + 代謝', icon: '🦵', region: 'lower', focus: '腿、臀', exercises: ['啞鈴深蹲', '啞鈴保加利亞分腿蹲', '啞鈴硬舉', '臀橋'] },
-    thursday: { name: '上肢拉 + 全身', icon: '🏋️', region: 'full', focus: '背、二頭、全身', exercises: ['啞鈴划船', '啞鈴單臂划船', '啞鈴二頭彎舉', '啞鈴抓舉'] },
-    friday: { name: '核心 + 活動度', icon: '🧘', region: 'core', focus: '核心、恢復', exercises: ['平板支撐', '死蟲式', '鳥狗式', '側平板'] }
+monday: { name: ‘上肢推 + 代謝’, icon: ‘💪’, region: ‘upper’, focus: ‘胸、肩、三頭’, exercises: [‘啞鈴胸推’, ‘啞鈴肩推’, ‘伏地挺身’, ‘啞鈴側平舉’] },
+tuesday: { name: ‘下肢 + 代謝’, icon: ‘🦵’, region: ‘lower’, focus: ‘腿、臀’, exercises: [‘啞鈴深蹲’, ‘啞鈴保加利亞分腿蹲’, ‘啞鈴硬舉’, ‘臀橋’] },
+thursday: { name: ‘上肢拉 + 全身’, icon: ‘🏋️’, region: ‘full’, focus: ‘背、二頭、全身’, exercises: [‘啞鈴划船’, ‘啞鈴單臂划船’, ‘啞鈴二頭彎舉’, ‘啞鈴抓舉’] },
+friday: { name: ‘核心 + 活動度’, icon: ‘🧘’, region: ‘core’, focus: ‘核心、恢復’, exercises: [‘平板支撐’, ‘死蟲式’, ‘鳥狗式’, ‘側平板’] }
 };
 
 const durationConfigs = {
-    15: { setsPerExercise: 2, exerciseCount: 3, restMultiplier: 0.7, label: '快速' },
-    30: { setsPerExercise: 3, exerciseCount: 4, restMultiplier: 1.0, label: '標準' },
-    45: { setsPerExercise: 3, exerciseCount: 5, restMultiplier: 1.0, label: '完整' },
-    60: { setsPerExercise: 4, exerciseCount: 6, restMultiplier: 1.2, label: '深度' },
+15: { setsPerExercise: 2, exerciseCount: 3, restMultiplier: 0.7, label: ‘快速’ },
+30: { setsPerExercise: 3, exerciseCount: 4, restMultiplier: 1.0, label: ‘標準’ },
+45: { setsPerExercise: 3, exerciseCount: 5, restMultiplier: 1.0, label: ‘完整’ },
+60: { setsPerExercise: 4, exerciseCount: 6, restMultiplier: 1.2, label: ‘深度’ },
 };
 
 // ============================================
 // 主應用程式
 // ============================================
 function FitnessApp() {
-    const [currentPage, setCurrentPage] = useState('home');
-    const [selectedDay, setSelectedDay] = useState(null);
-    const [duration, setDuration] = useState(30);
-    const [customWorkouts, setCustomWorkouts] = useState({});
-    const [progress, setProgress] = useState({});
+const [currentPage, setCurrentPage] = useState(‘home’);
+const [selectedDay, setSelectedDay] = useState(null);
+const [duration, setDuration] = useState(30);
+const [customWorkouts, setCustomWorkouts] = useState({});
+const [progress, setProgress] = useState({});
+
+```
+const [currentExerciseIdx, setCurrentExerciseIdx] = useState(0);
+const [completedSets, setCompletedSets] = useState([]);
+const [timerSeconds, setTimerSeconds] = useState(0);
+const [isTimerRunning, setIsTimerRunning] = useState(false);
+
+const [showSwapModal, setShowSwapModal] = useState(null);
+const [showDetailModal, setShowDetailModal] = useState(null);
+const [filterRegion, setFilterRegion] = useState('all');
+const [showSettings, setShowSettings] = useState(false);
+const [showSaveToast, setShowSaveToast] = useState(false);
+const [showInputModal, setShowInputModal] = useState(null);
+const [inputValue, setInputValue] = useState('');
+
+// 載入儲存的資料
+useEffect(() => {
+    const settings = safeStorage.get('fittrack_settings');
+    if (settings?.duration) setDuration(settings.duration);
     
-    const [currentExerciseIdx, setCurrentExerciseIdx] = useState(0);
-    const [completedSets, setCompletedSets] = useState([]);
-    const [timerSeconds, setTimerSeconds] = useState(0);
-    const [isTimerRunning, setIsTimerRunning] = useState(false);
+    const workouts = safeStorage.get('fittrack_customWorkouts');
+    if (workouts) setCustomWorkouts(workouts);
     
-    const [showSwapModal, setShowSwapModal] = useState(null);
-    const [showDetailModal, setShowDetailModal] = useState(null);
-    const [filterRegion, setFilterRegion] = useState('all');
-    const [showSettings, setShowSettings] = useState(false);
-    const [showSaveToast, setShowSaveToast] = useState(false);
-    const [showInputModal, setShowInputModal] = useState(null);
-    const [inputValue, setInputValue] = useState('');
+    const prog = safeStorage.get('fittrack_progress');
+    if (prog) setProgress(prog);
+}, []);
 
-    // 載入儲存的資料
-    useEffect(() => {
-        const settings = safeStorage.get('fittrack_settings');
-        if (settings?.duration) setDuration(settings.duration);
-        
-        const workouts = safeStorage.get('fittrack_customWorkouts');
-        if (workouts) setCustomWorkouts(workouts);
-        
-        const prog = safeStorage.get('fittrack_progress');
-        if (prog) setProgress(prog);
-    }, []);
+// 計時器
+useEffect(() => {
+    if (!isTimerRunning) return;
+    const interval = setInterval(() => setTimerSeconds(s => s + 1), 1000);
+    return () => clearInterval(interval);
+}, [isTimerRunning]);
 
-    // 計時器
-    useEffect(() => {
-        if (!isTimerRunning) return;
-        const interval = setInterval(() => setTimerSeconds(s => s + 1), 1000);
-        return () => clearInterval(interval);
-    }, [isTimerRunning]);
+const saveSettings = (newDuration) => {
+    setDuration(newDuration);
+    safeStorage.set('fittrack_settings', { duration: newDuration });
+    showToast();
+};
 
-    const saveSettings = (newDuration) => {
-        setDuration(newDuration);
-        safeStorage.set('fittrack_settings', { duration: newDuration });
-        showToast();
-    };
+const saveCustomWorkout = (day, exercises) => {
+    const newWorkouts = { ...customWorkouts, [day]: exercises };
+    setCustomWorkouts(newWorkouts);
+    safeStorage.set('fittrack_customWorkouts', newWorkouts);
+    showToast();
+};
 
-    const saveCustomWorkout = (day, exercises) => {
-        const newWorkouts = { ...customWorkouts, [day]: exercises };
-        setCustomWorkouts(newWorkouts);
-        safeStorage.set('fittrack_customWorkouts', newWorkouts);
-        showToast();
-    };
+const resetCustomWorkout = (day) => {
+    const newWorkouts = { ...customWorkouts };
+    delete newWorkouts[day];
+    setCustomWorkouts(newWorkouts);
+    safeStorage.set('fittrack_customWorkouts', newWorkouts);
+    showToast();
+};
 
-    const resetCustomWorkout = (day) => {
-        const newWorkouts = { ...customWorkouts };
-        delete newWorkouts[day];
-        setCustomWorkouts(newWorkouts);
-        safeStorage.set('fittrack_customWorkouts', newWorkouts);
-        showToast();
-    };
+const saveProgress = (newProgress) => {
+    setProgress(newProgress);
+    safeStorage.set('fittrack_progress', newProgress);
+};
 
-    const saveProgress = (newProgress) => {
-        setProgress(newProgress);
-        safeStorage.set('fittrack_progress', newProgress);
-    };
+const showToast = () => {
+    setShowSaveToast(true);
+    setTimeout(() => setShowSaveToast(false), 2000);
+};
 
-    const showToast = () => {
-        setShowSaveToast(true);
-        setTimeout(() => setShowSaveToast(false), 2000);
-    };
+const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
-    const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+const getDayExercises = (day) => {
+    const config = durationConfigs[duration];
+    const baseExercises = customWorkouts[day] || defaultTemplates[day]?.exercises || [];
+    return baseExercises.slice(0, config.exerciseCount);
+};
 
-    const getDayExercises = (day) => {
-        const config = durationConfigs[duration];
-        const baseExercises = customWorkouts[day] || defaultTemplates[day]?.exercises || [];
-        return baseExercises.slice(0, config.exerciseCount);
-    };
+const getExerciseConfig = (exerciseName) => {
+    const ex = exerciseDB[exerciseName];
+    if (!ex) return null;
+    const config = durationConfigs[duration];
+    return { ...ex, sets: config.setsPerExercise, rest: Math.round(ex.defaultRest * config.restMultiplier) };
+};
 
-    const getExerciseConfig = (exerciseName) => {
-        const ex = exerciseDB[exerciseName];
-        if (!ex) return null;
-        const config = durationConfigs[duration];
-        return { ...ex, sets: config.setsPerExercise, rest: Math.round(ex.defaultRest * config.restMultiplier) };
-    };
+const getSwapOptions = (currentExercise) => {
+    const current = exerciseDB[currentExercise];
+    if (!current) return [];
+    return Object.entries(exerciseDB)
+        .filter(([name, ex]) => name !== currentExercise && ex.category === current.category && (filterRegion === 'all' || ex.region === filterRegion))
+        .map(([name, ex]) => ({ name, ...ex }));
+};
 
-    const getSwapOptions = (currentExercise) => {
-        const current = exerciseDB[currentExercise];
-        if (!current) return [];
-        return Object.entries(exerciseDB)
-            .filter(([name, ex]) => name !== currentExercise && ex.category === current.category && (filterRegion === 'all' || ex.region === filterRegion))
-            .map(([name, ex]) => ({ name, ...ex }));
-    };
+const startTraining = (day) => {
+    const exercises = getDayExercises(day);
+    setSelectedDay(day);
+    setCurrentExerciseIdx(0);
+    setCompletedSets(exercises.map(() => []));
+    setTimerSeconds(0);
+    setIsTimerRunning(false);
+    setCurrentPage('training');
+};
 
-    const startTraining = (day) => {
-        const exercises = getDayExercises(day);
-        setSelectedDay(day);
-        setCurrentExerciseIdx(0);
-        setCompletedSets(exercises.map(() => []));
-        setTimerSeconds(0);
-        setIsTimerRunning(false);
-        setCurrentPage('training');
-    };
+const recordSet = (reps) => {
+    const newSets = [...completedSets];
+    newSets[currentExerciseIdx] = [...(newSets[currentExerciseIdx] || []), reps];
+    setCompletedSets(newSets);
+    setIsTimerRunning(false);
+    setTimerSeconds(0);
+    const today = new Date().toISOString().split('T')[0];
+    const newProgress = { ...progress, [today]: { ...(progress[today] || {}), [selectedDay]: newSets } };
+    saveProgress(newProgress);
+};
 
-    const recordSet = (reps) => {
-        const newSets = [...completedSets];
-        newSets[currentExerciseIdx] = [...(newSets[currentExerciseIdx] || []), reps];
-        setCompletedSets(newSets);
-        setIsTimerRunning(false);
-        setTimerSeconds(0);
-        const today = new Date().toISOString().split('T')[0];
-        const newProgress = { ...progress, [today]: { ...(progress[today] || {}), [selectedDay]: newSets } };
-        saveProgress(newProgress);
-    };
+// ============================================
+// 渲染輔助元件
+// ============================================
+const MuscleBadges = ({ primary, secondary, size = 'sm' }) => {
+    const sizeClass = size === 'lg' ? 'text-sm px-3 py-1.5' : 'text-xs px-2 py-1';
+    return React.createElement('div', { className: 'flex flex-wrap gap-1.5' },
+        primary.map((m, idx) => React.createElement('span', {
+            key: `p-${idx}`,
+            className: `${sizeClass} ${muscleColors[m]?.bg || ''} ${muscleColors[m]?.border || ''} ${muscleColors[m]?.text || ''} border rounded-full font-semibold`
+        }, m)),
+        secondary.map((m, idx) => React.createElement('span', {
+            key: `s-${idx}`,
+            className: `${sizeClass} bg-slate-800 border border-slate-700 text-slate-400 rounded-full`
+        }, m))
+    );
+};
 
-    // ============================================
-    // 渲染輔助元件
-    // ============================================
-    const MuscleBadges = ({ primary, secondary, size = 'sm' }) => {
-        const sizeClass = size === 'lg' ? 'text-sm px-3 py-1.5' : 'text-xs px-2 py-1';
-        return React.createElement('div', { className: 'flex flex-wrap gap-1.5' },
-            primary.map((m, idx) => React.createElement('span', {
-                key: `p-${idx}`,
-                className: `${sizeClass} ${muscleColors[m]?.bg || ''} ${muscleColors[m]?.border || ''} ${muscleColors[m]?.text || ''} border rounded-full font-semibold`
-            }, m)),
-            secondary.map((m, idx) => React.createElement('span', {
-                key: `s-${idx}`,
-                className: `${sizeClass} bg-slate-800 border border-slate-700 text-slate-400 rounded-full`
-            }, m))
-        );
-    };
+// Toast
+const Toast = () => showSaveToast ? React.createElement('div', {
+    className: 'fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-emerald-500/90 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 shadow-xl backdrop-blur'
+}, React.createElement(Icon, { name: 'check', size: 16 }), '已儲存') : null;
 
-    // Toast
-    const Toast = () => showSaveToast ? React.createElement('div', {
-        className: 'fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-emerald-500/90 text-white px-4 py-2 rounded-full text-sm font-semibold flex items-center gap-2 shadow-xl backdrop-blur'
-    }, React.createElement(Icon, { name: 'check', size: 16 }), '已儲存') : null;
-
-    // Input Modal
-    const InputModal = () => {
-        if (!showInputModal) return null;
-        return React.createElement('div', {
-            className: 'fixed inset-0 bg-black/80 z-50 flex items-end sm:items-center justify-center p-4',
-            onClick: () => setShowInputModal(null)
-        }, React.createElement('div', {
-            className: 'bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-sm',
-            onClick: e => e.stopPropagation()
-        },
-            React.createElement('h3', { className: 'text-lg font-bold text-cyan-300 mb-2' }, `第 ${showInputModal.setNum} 組完成幾下？`),
-            React.createElement('p', { className: 'text-sm text-slate-400 mb-4' }, `目標：${showInputModal.target}`),
-            React.createElement('input', {
-                type: 'number',
-                value: inputValue,
-                onChange: e => setInputValue(e.target.value),
-                autoFocus: true,
-                inputMode: 'numeric',
-                pattern: '[0-9]*',
-                className: 'w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-2xl font-bold text-center text-white focus:outline-none focus:border-cyan-500',
-                placeholder: '0'
-            }),
-            React.createElement('div', { className: 'flex gap-2 mt-4' },
-                React.createElement('button', {
-                    onClick: () => { setShowInputModal(null); setInputValue(''); },
-                    className: 'flex-1 py-3 bg-slate-700 rounded-xl font-semibold text-slate-300'
-                }, '取消'),
-                React.createElement('button', {
-                    onClick: () => {
-                        if (inputValue) {
-                            recordSet(parseInt(inputValue));
-                            setInputValue('');
-                            setShowInputModal(null);
-                        }
-                    },
-                    className: 'flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl font-semibold text-white'
-                }, '記錄')
-            )
-        ));
-    };
-
-    // Detail Modal
-    const DetailModal = () => {
-        if (!showDetailModal) return null;
-        const ex = exerciseDB[showDetailModal];
-        if (!ex) return null;
-        return React.createElement('div', {
-            className: 'fixed inset-0 bg-black/80 z-50 flex items-end justify-center',
-            onClick: () => setShowDetailModal(null)
-        }, React.createElement('div', {
-            className: 'bg-slate-900 border-t border-slate-700 rounded-t-3xl w-full max-h-[85vh] overflow-y-auto',
-            onClick: e => e.stopPropagation()
-        },
-            React.createElement('div', { className: 'sticky top-0 bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center' },
-                React.createElement('h3', { className: 'text-xl font-bold text-cyan-300' }, showDetailModal),
-                React.createElement('button', { onClick: () => setShowDetailModal(null), className: 'text-slate-400 p-2' }, React.createElement(Icon, { name: 'x', size: 24 }))
-            ),
-            React.createElement('div', { className: 'p-4 space-y-4' },
-                React.createElement('div', { className: 'bg-slate-800/50 rounded-2xl p-4 border border-slate-700' },
-                    React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-wider mb-3' }, '訓練肌肉'),
-                    React.createElement(MuscleBadges, { primary: ex.primary, secondary: ex.secondary, size: 'lg' }),
-                    React.createElement('div', { className: 'mt-3 space-y-1' },
-                        React.createElement('p', { className: 'text-sm' },
-                            React.createElement('span', { className: 'text-cyan-400 font-semibold' }, '主要：'),
-                            React.createElement('span', { className: 'text-white' }, ex.primaryDetail)
-                        ),
-                        ex.secondaryDetail && React.createElement('p', { className: 'text-sm' },
-                            React.createElement('span', { className: 'text-slate-400 font-semibold' }, '次要：'),
-                            React.createElement('span', { className: 'text-slate-300' }, ex.secondaryDetail)
-                        )
-                    )
-                ),
-                React.createElement('div', { className: 'grid grid-cols-3 gap-2' },
-                    React.createElement('div', { className: 'bg-slate-800/50 rounded-xl p-3 text-center border border-slate-700' },
-                        React.createElement('p', { className: 'text-xs text-slate-400' }, '建議重量'),
-                        React.createElement('p', { className: 'text-lg font-bold text-blue-400' }, ex.defaultWeight)
-                    ),
-                    React.createElement('div', { className: 'bg-slate-800/50 rounded-xl p-3 text-center border border-slate-700' },
-                        React.createElement('p', { className: 'text-xs text-slate-400' }, '次數範圍'),
-                        React.createElement('p', { className: 'text-lg font-bold text-emerald-400' }, ex.defaultReps)
-                    ),
-                    React.createElement('div', { className: 'bg-slate-800/50 rounded-xl p-3 text-center border border-slate-700' },
-                        React.createElement('p', { className: 'text-xs text-slate-400' }, '休息(秒)'),
-                        React.createElement('p', { className: 'text-lg font-bold text-amber-400' }, ex.defaultRest)
-                    )
-                ),
-                React.createElement('div', { className: 'bg-emerald-950/30 border border-emerald-700/30 rounded-2xl p-4' },
-                    React.createElement('p', { className: 'font-bold text-emerald-400 mb-3 flex items-center gap-2' },
-                        React.createElement(Icon, { name: 'check', size: 18 }), '正確做法'
-                    ),
-                    React.createElement('ul', { className: 'space-y-2' },
-                        ex.tips.map((tip, idx) => React.createElement('li', { key: idx, className: 'text-sm text-slate-200 flex gap-2' },
-                            React.createElement('span', { className: 'text-emerald-400 font-bold' }, `${idx + 1}.`),
-                            React.createElement('span', null, tip)
-                        ))
-                    )
-                ),
-                React.createElement('div', { className: 'bg-rose-950/30 border border-rose-700/30 rounded-2xl p-4' },
-                    React.createElement('p', { className: 'font-bold text-rose-400 mb-2' }, '⚠️ 注意事項'),
-                    React.createElement('p', { className: 'text-sm text-slate-200' }, ex.safety)
-                )
-            )
-        ));
-    };
-
-    // Swap Modal
-    const SwapModal = () => {
-        if (!showSwapModal) return null;
-        const options = getSwapOptions(showSwapModal.exercise);
-        return React.createElement('div', {
-            className: 'fixed inset-0 bg-black/80 z-50 flex items-end justify-center',
-            onClick: () => setShowSwapModal(null)
-        }, React.createElement('div', {
-            className: 'bg-slate-900 border-t border-slate-700 rounded-t-3xl w-full max-h-[85vh] overflow-y-auto',
-            onClick: e => e.stopPropagation()
-        },
-            React.createElement('div', { className: 'sticky top-0 bg-slate-900 border-b border-slate-800 p-4' },
-                React.createElement('div', { className: 'flex justify-between items-center mb-3' },
-                    React.createElement('h3', { className: 'text-xl font-bold text-cyan-300' }, '替換動作'),
-                    React.createElement('button', { onClick: () => setShowSwapModal(null), className: 'text-slate-400 p-2' }, React.createElement(Icon, { name: 'x', size: 24 }))
-                ),
-                React.createElement('p', { className: 'text-sm text-slate-400 mb-2' },
-                    '目前：', React.createElement('span', { className: 'text-white font-semibold' }, showSwapModal.exercise)
-                ),
-                React.createElement('div', { className: 'flex gap-2 overflow-x-auto pb-1' },
-                    [{ id: 'all', label: '全部' }, { id: 'upper', label: '上半身' }, { id: 'lower', label: '下半身' }, { id: 'core', label: '核心' }, { id: 'full', label: '全身' }].map(f =>
-                        React.createElement('button', {
-                            key: f.id,
-                            onClick: () => setFilterRegion(f.id),
-                            className: `px-3 py-1.5 rounded-full text-xs whitespace-nowrap font-semibold ${filterRegion === f.id ? 'bg-cyan-500 text-white' : 'bg-slate-800 text-slate-400 border border-slate-700'}`
-                        }, f.label)
-                    )
-                )
-            ),
-            React.createElement('div', { className: 'p-4 space-y-2' },
-                options.length === 0 ? React.createElement('p', { className: 'text-center text-slate-500 py-8' }, '沒有符合條件的動作') :
-                options.map(opt => React.createElement('button', {
-                    key: opt.name,
-                    onClick: () => {
-                        const exercises = getDayExercises(showSwapModal.day);
-                        const newExercises = [...exercises];
-                        newExercises[showSwapModal.idx] = opt.name;
-                        saveCustomWorkout(showSwapModal.day, newExercises);
-                        setShowSwapModal(null);
-                    },
-                    className: 'w-full text-left p-4 bg-slate-800/50 hover:bg-slate-700/50 rounded-2xl border border-slate-700'
+// Input Modal
+const InputModal = () => {
+    if (!showInputModal) return null;
+    return React.createElement('div', {
+        className: 'fixed inset-0 bg-black/80 z-50 flex items-end sm:items-center justify-center p-4',
+        onClick: () => setShowInputModal(null)
+    }, React.createElement('div', {
+        className: 'bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-sm',
+        onClick: e => e.stopPropagation()
+    },
+        React.createElement('h3', { className: 'text-lg font-bold text-cyan-300 mb-2' }, `第 ${showInputModal.setNum} 組完成幾下？`),
+        React.createElement('p', { className: 'text-sm text-slate-400 mb-4' }, `目標：${showInputModal.target}`),
+        React.createElement('input', {
+            type: 'number',
+            value: inputValue,
+            onChange: e => setInputValue(e.target.value),
+            autoFocus: true,
+            inputMode: 'numeric',
+            pattern: '[0-9]*',
+            className: 'w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-2xl font-bold text-center text-white focus:outline-none focus:border-cyan-500',
+            placeholder: '0'
+        }),
+        React.createElement('div', { className: 'flex gap-2 mt-4' },
+            React.createElement('button', {
+                onClick: () => { setShowInputModal(null); setInputValue(''); },
+                className: 'flex-1 py-3 bg-slate-700 rounded-xl font-semibold text-slate-300'
+            }, '取消'),
+            React.createElement('button', {
+                onClick: () => {
+                    if (inputValue) {
+                        recordSet(parseInt(inputValue));
+                        setInputValue('');
+                        setShowInputModal(null);
+                    }
                 },
-                    React.createElement('div', { className: 'flex justify-between items-start mb-2' },
-                        React.createElement('p', { className: 'font-semibold text-white' }, opt.name),
-                        React.createElement('div', { className: 'flex gap-1' },
-                            [1, 2, 3].map(i => React.createElement('div', {
-                                key: i,
-                                className: `w-1.5 h-1.5 rounded-full ${i <= opt.difficulty ? 'bg-amber-400' : 'bg-slate-700'}`
-                            }))
+                className: 'flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl font-semibold text-white'
+            }, '記錄')
+        )
+    ));
+};
+
+// Detail Modal
+const DetailModal = () => {
+    if (!showDetailModal) return null;
+    const ex = exerciseDB[showDetailModal];
+    if (!ex) return null;
+    return React.createElement('div', {
+        className: 'fixed inset-0 bg-black/80 z-50 flex items-end justify-center',
+        onClick: () => setShowDetailModal(null)
+    }, React.createElement('div', {
+        className: 'bg-slate-900 border-t border-slate-700 rounded-t-3xl w-full max-h-[85vh] overflow-y-auto',
+        onClick: e => e.stopPropagation()
+    },
+        React.createElement('div', { className: 'sticky top-0 bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center' },
+            React.createElement('h3', { className: 'text-xl font-bold text-cyan-300' }, showDetailModal),
+            React.createElement('button', { onClick: () => setShowDetailModal(null), className: 'text-slate-400 p-2' }, React.createElement(Icon, { name: 'x', size: 24 }))
+        ),
+        React.createElement('div', { className: 'p-4 space-y-4' },
+            React.createElement('div', { className: 'bg-slate-800/50 rounded-2xl p-4 border border-slate-700' },
+                React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-wider mb-3' }, '訓練肌肉'),
+                React.createElement(MuscleBadges, { primary: ex.primary, secondary: ex.secondary, size: 'lg' }),
+                React.createElement('div', { className: 'mt-3 space-y-1' },
+                    React.createElement('p', { className: 'text-sm' },
+                        React.createElement('span', { className: 'text-cyan-400 font-semibold' }, '主要：'),
+                        React.createElement('span', { className: 'text-white' }, ex.primaryDetail)
+                    ),
+                    ex.secondaryDetail && React.createElement('p', { className: 'text-sm' },
+                        React.createElement('span', { className: 'text-slate-400 font-semibold' }, '次要：'),
+                        React.createElement('span', { className: 'text-slate-300' }, ex.secondaryDetail)
+                    )
+                )
+            ),
+            React.createElement('div', { className: 'grid grid-cols-3 gap-2' },
+                React.createElement('div', { className: 'bg-slate-800/50 rounded-xl p-3 text-center border border-slate-700' },
+                    React.createElement('p', { className: 'text-xs text-slate-400' }, '建議重量'),
+                    React.createElement('p', { className: 'text-lg font-bold text-blue-400' }, ex.defaultWeight)
+                ),
+                React.createElement('div', { className: 'bg-slate-800/50 rounded-xl p-3 text-center border border-slate-700' },
+                    React.createElement('p', { className: 'text-xs text-slate-400' }, '次數範圍'),
+                    React.createElement('p', { className: 'text-lg font-bold text-emerald-400' }, ex.defaultReps)
+                ),
+                React.createElement('div', { className: 'bg-slate-800/50 rounded-xl p-3 text-center border border-slate-700' },
+                    React.createElement('p', { className: 'text-xs text-slate-400' }, '休息(秒)'),
+                    React.createElement('p', { className: 'text-lg font-bold text-amber-400' }, ex.defaultRest)
+                )
+            ),
+            React.createElement('a', {
+                href: ex.englishName ? `https://www.youtube.com/@ScottHermanFitness/search?query=${encodeURIComponent(ex.englishName)}` : `https://www.youtube.com/results?search_query=${encodeURIComponent(showDetailModal + ' tutorial')}`,
+                target: '_blank',
+                rel: 'noopener noreferrer',
+                className: 'block w-full bg-gradient-to-r from-red-600/20 to-red-500/20 border border-red-500/30 rounded-2xl p-4 active:scale-95 transition'
+            },
+                React.createElement('div', { className: 'flex items-center justify-between' },
+                    React.createElement('div', { className: 'flex items-center gap-3' },
+                        React.createElement('div', { className: 'w-12 h-12 bg-red-600 rounded-xl flex items-center justify-center' },
+                            React.createElement('svg', { width: 24, height: 24, viewBox: '0 0 24 24', fill: 'white' },
+                                React.createElement('path', { d: 'M8 5v14l11-7z' })
+                            )
+                        ),
+                        React.createElement('div', null,
+                            React.createElement('p', { className: 'font-bold text-white text-sm' }, '觀看示範影片'),
+                            React.createElement('p', { className: 'text-xs text-red-300/80' }, 'Scott Herman Fitness 教學')
                         )
                     ),
-                    React.createElement(MuscleBadges, { primary: opt.primary, secondary: opt.secondary }),
-                    React.createElement('p', { className: 'text-xs text-slate-400 mt-2' }, opt.primaryDetail)
-                ))
-            )
-        ));
-    };
-
-    // Settings Modal
-    const SettingsModal = () => {
-        if (!showSettings) return null;
-        return React.createElement('div', {
-            className: 'fixed inset-0 bg-black/80 z-50 flex items-end justify-center',
-            onClick: () => setShowSettings(false)
-        }, React.createElement('div', {
-            className: 'bg-slate-900 border-t border-slate-700 rounded-t-3xl w-full max-h-[85vh] overflow-y-auto',
-            onClick: e => e.stopPropagation()
-        },
-            React.createElement('div', { className: 'sticky top-0 bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center' },
-                React.createElement('h3', { className: 'text-xl font-bold text-cyan-300 flex items-center gap-2' },
-                    React.createElement(Icon, { name: 'settings', size: 20 }), '設定'
-                ),
-                React.createElement('button', { onClick: () => setShowSettings(false), className: 'text-slate-400 p-2' }, React.createElement(Icon, { name: 'x', size: 24 }))
-            ),
-            React.createElement('div', { className: 'p-4 space-y-6' },
-                React.createElement('div', null,
-                    React.createElement('p', { className: 'text-sm text-slate-400 mb-3 uppercase tracking-wider' }, '訓練時長'),
-                    React.createElement('div', { className: 'grid grid-cols-2 gap-2' },
-                        Object.entries(durationConfigs).map(([min, config]) => React.createElement('button', {
-                            key: min,
-                            onClick: () => saveSettings(parseInt(min)),
-                            className: `p-4 rounded-2xl border-2 ${duration === parseInt(min) ? 'bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border-cyan-500 text-white' : 'bg-slate-800/50 border-slate-700 text-slate-400'}`
-                        },
-                            React.createElement('p', { className: 'text-2xl font-bold' }, min, React.createElement('span', { className: 'text-sm' }, '分鐘')),
-                            React.createElement('p', { className: 'text-xs mt-1 opacity-75' }, config.label),
-                            React.createElement('p', { className: 'text-xs mt-1 opacity-75' }, `${config.exerciseCount}動作 × ${config.setsPerExercise}組`)
-                        ))
+                    React.createElement('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'currentColor', className: 'text-red-400' },
+                        React.createElement('path', { d: 'M14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7zM19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7z' })
                     )
+                )
+            ),
+            React.createElement('div', { className: 'bg-emerald-950/30 border border-emerald-700/30 rounded-2xl p-4' },
+                React.createElement('p', { className: 'font-bold text-emerald-400 mb-3 flex items-center gap-2' },
+                    React.createElement(Icon, { name: 'check', size: 18 }), '正確做法'
                 ),
-                React.createElement('div', { className: 'bg-blue-950/30 border border-blue-700/30 rounded-2xl p-4' },
-                    React.createElement('p', { className: 'text-sm font-semibold text-blue-300 mb-2' }, '🔒 數據安全'),
-                    React.createElement('p', { className: 'text-xs text-slate-300 leading-relaxed' }, '所有數據儲存在本機，不會上傳到任何伺服器。建議定期截圖進度頁面備份。')
+                React.createElement('ul', { className: 'space-y-2' },
+                    ex.tips.map((tip, idx) => React.createElement('li', { key: idx, className: 'text-sm text-slate-200 flex gap-2' },
+                        React.createElement('span', { className: 'text-emerald-400 font-bold' }, `${idx + 1}.`),
+                        React.createElement('span', null, tip)
+                    ))
+                )
+            ),
+            React.createElement('div', { className: 'bg-rose-950/30 border border-rose-700/30 rounded-2xl p-4' },
+                React.createElement('p', { className: 'font-bold text-rose-400 mb-2' }, '⚠️ 注意事項'),
+                React.createElement('p', { className: 'text-sm text-slate-200' }, ex.safety)
+            )
+        )
+    ));
+};
+
+// Swap Modal
+const SwapModal = () => {
+    if (!showSwapModal) return null;
+    const options = getSwapOptions(showSwapModal.exercise);
+    return React.createElement('div', {
+        className: 'fixed inset-0 bg-black/80 z-50 flex items-end justify-center',
+        onClick: () => setShowSwapModal(null)
+    }, React.createElement('div', {
+        className: 'bg-slate-900 border-t border-slate-700 rounded-t-3xl w-full max-h-[85vh] overflow-y-auto',
+        onClick: e => e.stopPropagation()
+    },
+        React.createElement('div', { className: 'sticky top-0 bg-slate-900 border-b border-slate-800 p-4' },
+            React.createElement('div', { className: 'flex justify-between items-center mb-3' },
+                React.createElement('h3', { className: 'text-xl font-bold text-cyan-300' }, '替換動作'),
+                React.createElement('button', { onClick: () => setShowSwapModal(null), className: 'text-slate-400 p-2' }, React.createElement(Icon, { name: 'x', size: 24 }))
+            ),
+            React.createElement('p', { className: 'text-sm text-slate-400 mb-2' },
+                '目前：', React.createElement('span', { className: 'text-white font-semibold' }, showSwapModal.exercise)
+            ),
+            React.createElement('div', { className: 'flex gap-2 overflow-x-auto pb-1' },
+                [{ id: 'all', label: '全部' }, { id: 'upper', label: '上半身' }, { id: 'lower', label: '下半身' }, { id: 'core', label: '核心' }, { id: 'full', label: '全身' }].map(f =>
+                    React.createElement('button', {
+                        key: f.id,
+                        onClick: () => setFilterRegion(f.id),
+                        className: `px-3 py-1.5 rounded-full text-xs whitespace-nowrap font-semibold ${filterRegion === f.id ? 'bg-cyan-500 text-white' : 'bg-slate-800 text-slate-400 border border-slate-700'}`
+                    }, f.label)
                 )
             )
-        ));
-    };
+        ),
+        React.createElement('div', { className: 'p-4 space-y-2' },
+            options.length === 0 ? React.createElement('p', { className: 'text-center text-slate-500 py-8' }, '沒有符合條件的動作') :
+            options.map(opt => React.createElement('button', {
+                key: opt.name,
+                onClick: () => {
+                    const exercises = getDayExercises(showSwapModal.day);
+                    const newExercises = [...exercises];
+                    newExercises[showSwapModal.idx] = opt.name;
+                    saveCustomWorkout(showSwapModal.day, newExercises);
+                    setShowSwapModal(null);
+                },
+                className: 'w-full text-left p-4 bg-slate-800/50 hover:bg-slate-700/50 rounded-2xl border border-slate-700'
+            },
+                React.createElement('div', { className: 'flex justify-between items-start mb-2' },
+                    React.createElement('p', { className: 'font-semibold text-white' }, opt.name),
+                    React.createElement('div', { className: 'flex gap-1' },
+                        [1, 2, 3].map(i => React.createElement('div', {
+                            key: i,
+                            className: `w-1.5 h-1.5 rounded-full ${i <= opt.difficulty ? 'bg-amber-400' : 'bg-slate-700'}`
+                        }))
+                    )
+                ),
+                React.createElement(MuscleBadges, { primary: opt.primary, secondary: opt.secondary }),
+                React.createElement('p', { className: 'text-xs text-slate-400 mt-2' }, opt.primaryDetail)
+            ))
+        )
+    ));
+};
 
-    // ============================================
-    // 首頁
-    // ============================================
-    if (currentPage === 'home') {
-        const today = new Date().getDay();
-        const dayMap = { 1: 'monday', 2: 'tuesday', 4: 'thursday', 5: 'friday' };
-        const recommendedDay = dayMap[today];
-        
-        return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black text-white' },
-            React.createElement(Toast),
-            React.createElement(SettingsModal),
-            React.createElement('div', { className: 'px-5 pt-6 pb-4 sticky top-0 bg-gradient-to-b from-slate-950 via-slate-950/95 to-transparent z-20 backdrop-blur-sm' },
-                React.createElement('div', { className: 'flex justify-between items-start' },
+// Settings Modal
+const SettingsModal = () => {
+    if (!showSettings) return null;
+    return React.createElement('div', {
+        className: 'fixed inset-0 bg-black/80 z-50 flex items-end justify-center',
+        onClick: () => setShowSettings(false)
+    }, React.createElement('div', {
+        className: 'bg-slate-900 border-t border-slate-700 rounded-t-3xl w-full max-h-[85vh] overflow-y-auto',
+        onClick: e => e.stopPropagation()
+    },
+        React.createElement('div', { className: 'sticky top-0 bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center' },
+            React.createElement('h3', { className: 'text-xl font-bold text-cyan-300 flex items-center gap-2' },
+                React.createElement(Icon, { name: 'settings', size: 20 }), '設定'
+            ),
+            React.createElement('button', { onClick: () => setShowSettings(false), className: 'text-slate-400 p-2' }, React.createElement(Icon, { name: 'x', size: 24 }))
+        ),
+        React.createElement('div', { className: 'p-4 space-y-6' },
+            React.createElement('div', null,
+                React.createElement('p', { className: 'text-sm text-slate-400 mb-3 uppercase tracking-wider' }, '訓練時長'),
+                React.createElement('div', { className: 'grid grid-cols-2 gap-2' },
+                    Object.entries(durationConfigs).map(([min, config]) => React.createElement('button', {
+                        key: min,
+                        onClick: () => saveSettings(parseInt(min)),
+                        className: `p-4 rounded-2xl border-2 ${duration === parseInt(min) ? 'bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border-cyan-500 text-white' : 'bg-slate-800/50 border-slate-700 text-slate-400'}`
+                    },
+                        React.createElement('p', { className: 'text-2xl font-bold' }, min, React.createElement('span', { className: 'text-sm' }, '分鐘')),
+                        React.createElement('p', { className: 'text-xs mt-1 opacity-75' }, config.label),
+                        React.createElement('p', { className: 'text-xs mt-1 opacity-75' }, `${config.exerciseCount}動作 × ${config.setsPerExercise}組`)
+                    ))
+                )
+            ),
+            React.createElement('div', { className: 'bg-blue-950/30 border border-blue-700/30 rounded-2xl p-4' },
+                React.createElement('p', { className: 'text-sm font-semibold text-blue-300 mb-2' }, '🔒 數據安全'),
+                React.createElement('p', { className: 'text-xs text-slate-300 leading-relaxed' }, '所有數據儲存在本機，不會上傳到任何伺服器。建議定期截圖進度頁面備份。')
+            )
+        )
+    ));
+};
+
+// ============================================
+// 首頁
+// ============================================
+if (currentPage === 'home') {
+    const today = new Date().getDay();
+    const dayMap = { 1: 'monday', 2: 'tuesday', 4: 'thursday', 5: 'friday' };
+    const recommendedDay = dayMap[today];
+    
+    return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black text-white' },
+        React.createElement(Toast),
+        React.createElement(SettingsModal),
+        React.createElement('div', { className: 'px-5 pt-6 pb-4 sticky top-0 bg-gradient-to-b from-slate-950 via-slate-950/95 to-transparent z-20 backdrop-blur-sm' },
+            React.createElement('div', { className: 'flex justify-between items-start' },
+                React.createElement('div', null,
+                    React.createElement('p', { className: 'text-xs text-cyan-400 font-mono uppercase tracking-widest mb-1' }, 'FitTrack'),
+                    React.createElement('h1', { className: 'text-3xl font-black bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent' }, 'Kevin 的健身計畫'),
+                    React.createElement('p', { className: 'text-sm text-slate-400 mt-1' },
+                        new Date().toLocaleDateString('zh-TW', { weekday: 'long', month: 'long', day: 'numeric' })
+                    )
+                ),
+                React.createElement('button', {
+                    onClick: () => setShowSettings(true),
+                    className: 'p-3 bg-slate-800/50 rounded-2xl border border-slate-700'
+                }, React.createElement(Icon, { name: 'settings', size: 20, className: 'text-cyan-400' }))
+            )
+        ),
+        React.createElement('div', { className: 'px-5 pb-24 space-y-4' },
+            React.createElement('div', { className: 'bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-3xl p-5' },
+                React.createElement('div', { className: 'flex justify-between items-center' },
                     React.createElement('div', null,
-                        React.createElement('p', { className: 'text-xs text-cyan-400 font-mono uppercase tracking-widest mb-1' }, 'FitTrack'),
-                        React.createElement('h1', { className: 'text-3xl font-black bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent' }, 'Kevin 的健身計畫'),
-                        React.createElement('p', { className: 'text-sm text-slate-400 mt-1' },
-                            new Date().toLocaleDateString('zh-TW', { weekday: 'long', month: 'long', day: 'numeric' })
+                        React.createElement('p', { className: 'text-xs text-cyan-400 uppercase tracking-wider mb-1' }, '當前設定'),
+                        React.createElement('p', { className: 'text-2xl font-bold text-white' }, `${duration}分鐘訓練`),
+                        React.createElement('p', { className: 'text-xs text-slate-400 mt-1' },
+                            `${durationConfigs[duration].exerciseCount}動作 × ${durationConfigs[duration].setsPerExercise}組 · ${durationConfigs[duration].label}模式`
                         )
                     ),
                     React.createElement('button', {
                         onClick: () => setShowSettings(true),
-                        className: 'p-3 bg-slate-800/50 rounded-2xl border border-slate-700'
-                    }, React.createElement(Icon, { name: 'settings', size: 20, className: 'text-cyan-400' }))
+                        className: 'p-3 bg-slate-800/70 rounded-2xl border border-slate-700'
+                    }, React.createElement(Icon, { name: 'clock', size: 20, className: 'text-cyan-400' }))
                 )
             ),
-            React.createElement('div', { className: 'px-5 pb-24 space-y-4' },
-                React.createElement('div', { className: 'bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-3xl p-5' },
-                    React.createElement('div', { className: 'flex justify-between items-center' },
-                        React.createElement('div', null,
-                            React.createElement('p', { className: 'text-xs text-cyan-400 uppercase tracking-wider mb-1' }, '當前設定'),
-                            React.createElement('p', { className: 'text-2xl font-bold text-white' }, `${duration}分鐘訓練`),
-                            React.createElement('p', { className: 'text-xs text-slate-400 mt-1' },
-                                `${durationConfigs[duration].exerciseCount}動作 × ${durationConfigs[duration].setsPerExercise}組 · ${durationConfigs[duration].label}模式`
-                            )
-                        ),
-                        React.createElement('button', {
-                            onClick: () => setShowSettings(true),
-                            className: 'p-3 bg-slate-800/70 rounded-2xl border border-slate-700'
-                        }, React.createElement(Icon, { name: 'clock', size: 20, className: 'text-cyan-400' }))
-                    )
-                ),
-                React.createElement('div', { className: 'space-y-3' },
-                    React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-widest mb-2 px-2' }, '選擇訓練日'),
-                    Object.entries(defaultTemplates).map(([key, template]) => {
-                        const isCustom = !!customWorkouts[key];
-                        const isRecommended = key === recommendedDay;
-                        const exercises = getDayExercises(key);
-                        const allMuscles = new Set();
-                        exercises.forEach(ex => {
-                            const config = exerciseDB[ex];
-                            if (config) config.primary.forEach(m => allMuscles.add(m));
-                        });
-                        
-                        return React.createElement('div', {
-                            key: key,
-                            className: `relative bg-slate-900/50 backdrop-blur border rounded-3xl overflow-hidden ${isRecommended ? 'border-cyan-500/50 shadow-lg shadow-cyan-500/10' : 'border-slate-800'}`
-                        },
-                            isRecommended && React.createElement('div', {
-                                className: 'absolute top-0 right-0 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg'
-                            }, '今日推薦'),
-                            React.createElement('div', { className: 'p-4' },
-                                React.createElement('div', { className: 'flex items-center justify-between mb-3' },
-                                    React.createElement('div', { className: 'flex items-center gap-3' },
-                                        React.createElement('div', { className: 'text-3xl' }, template.icon),
-                                        React.createElement('div', null,
-                                            React.createElement('h3', { className: 'font-bold text-white text-lg' }, template.name),
-                                            React.createElement('p', { className: 'text-xs text-slate-400' }, template.focus)
-                                        )
-                                    ),
-                                    isCustom && React.createElement('span', {
-                                        className: 'text-[10px] bg-amber-500/20 text-amber-300 px-2 py-1 rounded-full border border-amber-500/30'
-                                    }, '已自訂')
-                                ),
-                                React.createElement('div', { className: 'mb-3' },
-                                    React.createElement(MuscleBadges, { primary: Array.from(allMuscles), secondary: [] })
-                                ),
-                                React.createElement('p', { className: 'text-xs text-slate-500 mb-3 truncate' }, exercises.join(' · ')),
-                                React.createElement('div', { className: 'flex gap-2' },
-                                    React.createElement('button', {
-                                        onClick: () => { setSelectedDay(key); setCurrentPage('customize'); },
-                                        className: 'flex-1 py-3 bg-slate-800 rounded-2xl text-sm font-semibold text-slate-300 flex items-center justify-center gap-1'
-                                    }, React.createElement(Icon, { name: 'filter', size: 14 }), ' 自訂'),
-                                    React.createElement('button', {
-                                        onClick: () => startTraining(key),
-                                        className: 'flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-1 shadow-lg shadow-cyan-500/20'
-                                    }, '開始 ', React.createElement(Icon, { name: 'play', size: 14 }))
-                                )
-                            )
-                        );
-                    })
-                ),
-                React.createElement('button', {
-                    onClick: () => setCurrentPage('stats'),
-                    className: 'w-full p-4 bg-slate-900/50 border border-slate-800 rounded-2xl flex items-center justify-between'
-                },
-                    React.createElement('div', { className: 'flex items-center gap-3' },
-                        React.createElement(Icon, { name: 'trendUp', size: 20, className: 'text-cyan-400' }),
-                        React.createElement('span', { className: 'font-semibold text-white' }, '查看進度')
-                    ),
-                    React.createElement(Icon, { name: 'chevronRight', size: 20, className: 'text-slate-500' })
-                )
-            )
-        );
-    }
-
-    // ============================================
-    // 自訂頁
-    // ============================================
-    if (currentPage === 'customize' && selectedDay) {
-        const template = defaultTemplates[selectedDay];
-        const exercises = getDayExercises(selectedDay);
-        const isCustom = !!customWorkouts[selectedDay];
-        
-        return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black text-white' },
-            React.createElement(Toast),
-            React.createElement(SwapModal),
-            React.createElement(DetailModal),
-            React.createElement('div', { className: 'px-5 pt-6 pb-4 sticky top-0 bg-slate-950/95 backdrop-blur z-20 border-b border-slate-800' },
-                React.createElement('div', { className: 'flex items-center justify-between mb-2' },
-                    React.createElement('button', {
-                        onClick: () => setCurrentPage('home'),
-                        className: 'flex items-center gap-1 text-slate-400'
-                    }, React.createElement(Icon, { name: 'arrowLeft', size: 20 }), ' 返回'),
-                    isCustom && React.createElement('button', {
-                        onClick: () => resetCustomWorkout(selectedDay),
-                        className: 'text-xs text-rose-400 flex items-center gap-1 px-3 py-1.5 bg-rose-950/30 rounded-full border border-rose-700/30'
-                    }, React.createElement(Icon, { name: 'refresh', size: 12 }), ' 重置預設')
-                ),
-                React.createElement('h2', { className: 'text-2xl font-bold text-white flex items-center gap-2' },
-                    React.createElement('span', { className: 'text-3xl' }, template.icon), ' ', template.name
-                ),
-                React.createElement('p', { className: 'text-sm text-slate-400 mt-1' }, '點擊動作可替換或查看詳情')
-            ),
-            React.createElement('div', { className: 'px-5 pb-32 pt-4 space-y-3' },
-                exercises.map((exName, idx) => {
-                    const ex = exerciseDB[exName];
-                    if (!ex) return null;
-                    const config = durationConfigs[duration];
+            React.createElement('div', { className: 'space-y-3' },
+                React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-widest mb-2 px-2' }, '選擇訓練日'),
+                Object.entries(defaultTemplates).map(([key, template]) => {
+                    const isCustom = !!customWorkouts[key];
+                    const isRecommended = key === recommendedDay;
+                    const exercises = getDayExercises(key);
+                    const allMuscles = new Set();
+                    exercises.forEach(ex => {
+                        const config = exerciseDB[ex];
+                        if (config) config.primary.forEach(m => allMuscles.add(m));
+                    });
+                    
                     return React.createElement('div', {
-                        key: `${exName}-${idx}`,
-                        className: 'bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden'
+                        key: key,
+                        className: `relative bg-slate-900/50 backdrop-blur border rounded-3xl overflow-hidden ${isRecommended ? 'border-cyan-500/50 shadow-lg shadow-cyan-500/10' : 'border-slate-800'}`
                     },
+                        isRecommended && React.createElement('div', {
+                            className: 'absolute top-0 right-0 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg'
+                        }, '今日推薦'),
                         React.createElement('div', { className: 'p-4' },
-                            React.createElement('div', { className: 'flex justify-between items-start mb-3' },
-                                React.createElement('div', { className: 'flex-1' },
-                                    React.createElement('div', { className: 'flex items-center gap-2 mb-1' },
-                                        React.createElement('span', { className: 'text-xs text-slate-500 font-mono' }, `#${idx + 1}`),
-                                        React.createElement('h3', { className: 'font-bold text-white text-lg' }, exName)
-                                    ),
-                                    React.createElement('p', { className: 'text-xs text-slate-400' }, ex.primaryDetail)
+                            React.createElement('div', { className: 'flex items-center justify-between mb-3' },
+                                React.createElement('div', { className: 'flex items-center gap-3' },
+                                    React.createElement('div', { className: 'text-3xl' }, template.icon),
+                                    React.createElement('div', null,
+                                        React.createElement('h3', { className: 'font-bold text-white text-lg' }, template.name),
+                                        React.createElement('p', { className: 'text-xs text-slate-400' }, template.focus)
+                                    )
                                 ),
-                                React.createElement('div', { className: 'flex gap-1' },
-                                    [1, 2, 3].map(i => React.createElement('div', {
-                                        key: i,
-                                        className: `w-1.5 h-5 rounded-full ${i <= ex.difficulty ? 'bg-amber-400' : 'bg-slate-700'}`
-                                    }))
-                                )
+                                isCustom && React.createElement('span', {
+                                    className: 'text-[10px] bg-amber-500/20 text-amber-300 px-2 py-1 rounded-full border border-amber-500/30'
+                                }, '已自訂')
                             ),
-                            React.createElement(MuscleBadges, { primary: ex.primary, secondary: ex.secondary }),
-                            React.createElement('div', { className: 'flex gap-2 mt-3 text-xs' },
-                                React.createElement('span', { className: 'px-2 py-1 bg-slate-800 rounded-lg text-slate-400' },
-                                    `${config.setsPerExercise}組 × ${ex.defaultReps}下`
-                                ),
-                                React.createElement('span', { className: 'px-2 py-1 bg-slate-800 rounded-lg text-blue-400' }, ex.defaultWeight)
+                            React.createElement('div', { className: 'mb-3' },
+                                React.createElement(MuscleBadges, { primary: Array.from(allMuscles), secondary: [] })
                             ),
-                            React.createElement('div', { className: 'flex gap-2 mt-3' },
+                            React.createElement('p', { className: 'text-xs text-slate-500 mb-3 truncate' }, exercises.join(' · ')),
+                            React.createElement('div', { className: 'flex gap-2' },
                                 React.createElement('button', {
-                                    onClick: () => setShowDetailModal(exName),
-                                    className: 'flex-1 py-2 bg-slate-800 rounded-xl text-xs font-semibold text-slate-300 flex items-center justify-center gap-1'
-                                }, React.createElement(Icon, { name: 'info', size: 14 }), ' 詳情'),
+                                    onClick: () => { setSelectedDay(key); setCurrentPage('customize'); },
+                                    className: 'flex-1 py-3 bg-slate-800 rounded-2xl text-sm font-semibold text-slate-300 flex items-center justify-center gap-1'
+                                }, React.createElement(Icon, { name: 'filter', size: 14 }), ' 自訂'),
                                 React.createElement('button', {
-                                    onClick: () => setShowSwapModal({ exercise: exName, idx, day: selectedDay }),
-                                    className: 'flex-1 py-2 bg-slate-800 rounded-xl text-xs font-semibold text-cyan-400 flex items-center justify-center gap-1'
-                                }, React.createElement(Icon, { name: 'refresh', size: 14 }), ' 替換')
+                                    onClick: () => startTraining(key),
+                                    className: 'flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl text-sm font-bold text-white flex items-center justify-center gap-1 shadow-lg shadow-cyan-500/20'
+                                }, '開始 ', React.createElement(Icon, { name: 'play', size: 14 }))
                             )
                         )
                     );
                 })
             ),
-            React.createElement('div', { className: 'fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black to-transparent' },
-                React.createElement('button', {
-                    onClick: () => startTraining(selectedDay),
-                    className: 'w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl font-bold text-white text-lg shadow-2xl shadow-cyan-500/30 flex items-center justify-center gap-2'
-                }, React.createElement(Icon, { name: 'play', size: 20 }), ' 開始訓練')
-            )
-        );
-    }
-
-    // ============================================
-    // 訓練頁
-    // ============================================
-    if (currentPage === 'training' && selectedDay) {
-        const exercises = getDayExercises(selectedDay);
-        const currentExName = exercises[currentExerciseIdx];
-        const ex = getExerciseConfig(currentExName);
-        const setsForExercise = completedSets[currentExerciseIdx] || [];
-        const isExerciseDone = setsForExercise.length >= ex.sets;
-        const isLastExercise = currentExerciseIdx === exercises.length - 1;
-        
-        return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black text-white' },
-            React.createElement(InputModal),
-            React.createElement(DetailModal),
-            React.createElement('div', { className: 'sticky top-0 z-20 bg-slate-950/95 backdrop-blur border-b border-slate-800' },
-                React.createElement('div', { className: 'px-5 pt-4 pb-3' },
-                    React.createElement('div', { className: 'flex justify-between items-center mb-2' },
-                        React.createElement('button', {
-                            onClick: () => { if (confirm('確定要結束本次訓練嗎？')) setCurrentPage('home'); },
-                            className: 'text-slate-400'
-                        }, React.createElement(Icon, { name: 'x', size: 20 })),
-                        React.createElement('p', { className: 'text-xs text-slate-400 font-mono' }, `${currentExerciseIdx + 1} / ${exercises.length}`)
-                    ),
-                    React.createElement('div', { className: 'w-full bg-slate-800 rounded-full h-1.5 overflow-hidden' },
-                        React.createElement('div', {
-                            className: 'bg-gradient-to-r from-cyan-400 to-blue-400 h-full rounded-full transition-all duration-500',
-                            style: { width: `${((currentExerciseIdx + (setsForExercise.length / ex.sets)) / exercises.length) * 100}%` }
-                        })
-                    )
-                )
-            ),
-            React.createElement('div', { className: 'px-5 pt-4 pb-32 space-y-4' },
-                React.createElement('div', { className: 'bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700 rounded-3xl p-5' },
-                    React.createElement('div', { className: 'flex justify-between items-start mb-3' },
-                        React.createElement('div', { className: 'flex-1' },
-                            React.createElement('h2', { className: 'text-3xl font-black text-white mb-2' }, currentExName),
-                            React.createElement(MuscleBadges, { primary: ex.primary, secondary: ex.secondary })
-                        ),
-                        React.createElement('button', {
-                            onClick: () => setShowDetailModal(currentExName),
-                            className: 'p-2 bg-slate-800 rounded-xl border border-slate-700'
-                        }, React.createElement(Icon, { name: 'info', size: 18, className: 'text-cyan-400' }))
-                    ),
-                    React.createElement('p', { className: 'text-sm text-slate-300 mt-3' }, ex.primaryDetail),
-                    React.createElement('div', { className: 'grid grid-cols-3 gap-2 mt-4' },
-                        React.createElement('div', { className: 'bg-slate-900/70 rounded-xl p-2.5 text-center' },
-                            React.createElement('p', { className: 'text-[10px] text-slate-400 uppercase' }, '組數'),
-                            React.createElement('p', { className: 'text-lg font-black text-amber-400' }, ex.sets)
-                        ),
-                        React.createElement('div', { className: 'bg-slate-900/70 rounded-xl p-2.5 text-center' },
-                            React.createElement('p', { className: 'text-[10px] text-slate-400 uppercase' }, '次數'),
-                            React.createElement('p', { className: 'text-lg font-black text-emerald-400' }, ex.defaultReps)
-                        ),
-                        React.createElement('div', { className: 'bg-slate-900/70 rounded-xl p-2.5 text-center' },
-                            React.createElement('p', { className: 'text-[10px] text-slate-400 uppercase' }, '重量'),
-                            React.createElement('p', { className: 'text-lg font-black text-blue-400' }, ex.defaultWeight)
-                        )
-                    )
+            React.createElement('button', {
+                onClick: () => setCurrentPage('stats'),
+                className: 'w-full p-4 bg-slate-900/50 border border-slate-800 rounded-2xl flex items-center justify-between'
+            },
+                React.createElement('div', { className: 'flex items-center gap-3' },
+                    React.createElement(Icon, { name: 'trendUp', size: 20, className: 'text-cyan-400' }),
+                    React.createElement('span', { className: 'font-semibold text-white' }, '查看進度')
                 ),
-                React.createElement('div', { className: 'bg-slate-900/50 border border-slate-800 rounded-3xl p-5' },
-                    React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-wider mb-3' }, '本動作進度'),
-                    React.createElement('div', { className: 'grid grid-cols-4 gap-2 mb-4' },
-                        Array.from({ length: ex.sets }).map((_, idx) => {
-                            const isDone = idx < setsForExercise.length;
-                            const isNext = idx === setsForExercise.length && !isExerciseDone;
-                            return React.createElement('button', {
-                                key: idx,
-                                onClick: () => { if (isNext) setShowInputModal({ setNum: idx + 1, target: ex.defaultReps }); },
-                                disabled: !isNext,
-                                className: `aspect-square rounded-2xl border-2 flex flex-col items-center justify-center ${isDone ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : isNext ? 'bg-cyan-500/10 border-cyan-500 text-cyan-300 animate-pulse' : 'bg-slate-800/30 border-slate-700 text-slate-600'}`
-                            },
-                                isDone ? React.createElement(React.Fragment, null,
-                                    React.createElement(Icon, { name: 'check', size: 20 }),
-                                    React.createElement('span', { className: 'text-xs font-bold mt-1' }, `${setsForExercise[idx]}下`)
-                                ) : React.createElement('span', { className: 'text-xs font-bold' }, `第${idx + 1}組`)
-                            );
-                        })
-                    ),
-                    !isExerciseDone && React.createElement('div', { className: 'bg-slate-800/50 rounded-2xl p-4 text-center' },
-                        React.createElement('p', { className: 'text-xs text-slate-400 mb-2' }, `休息計時器（建議${ex.rest}秒）`),
-                        React.createElement('p', { className: 'text-4xl font-black font-mono text-cyan-400 mb-3' }, formatTime(timerSeconds)),
-                        React.createElement('div', { className: 'flex gap-2 justify-center' },
-                            React.createElement('button', {
-                                onClick: () => setIsTimerRunning(!isTimerRunning),
-                                className: 'px-6 py-2.5 bg-cyan-500 rounded-xl text-white font-semibold text-sm flex items-center gap-2'
-                            }, React.createElement(Icon, { name: isTimerRunning ? 'pause' : 'play', size: 16 }),
-                               isTimerRunning ? '暫停' : '開始'),
-                            React.createElement('button', {
-                                onClick: () => { setTimerSeconds(0); setIsTimerRunning(false); },
-                                className: 'px-4 py-2.5 bg-slate-700 rounded-xl text-slate-300 font-semibold text-sm'
-                            }, '重置')
-                        )
-                    ),
-                    isExerciseDone && React.createElement('div', { className: 'bg-emerald-500/20 border border-emerald-500/30 rounded-2xl p-4 text-center' },
-                        React.createElement(Icon, { name: 'check', size: 32, className: 'text-emerald-400 mx-auto mb-1' }),
-                        React.createElement('p', { className: 'text-emerald-300 font-bold' }, '這個動作完成了！'),
-                        React.createElement('p', { className: 'text-xs text-emerald-400/70 mt-1' }, '點下方按鈕進入下一個')
-                    )
-                ),
-                !isLastExercise && React.createElement('div', { className: 'bg-slate-900/30 border border-slate-800 rounded-2xl p-4' },
-                    React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-wider mb-2' }, '接下來'),
-                    React.createElement('p', { className: 'font-semibold text-slate-300' }, exercises[currentExerciseIdx + 1]),
-                    React.createElement('div', { className: 'mt-2' },
-                        React.createElement(MuscleBadges, {
-                            primary: exerciseDB[exercises[currentExerciseIdx + 1]]?.primary || [],
-                            secondary: []
-                        })
-                    )
-                )
-            ),
-            React.createElement('div', { className: 'fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black to-transparent' },
-                React.createElement('div', { className: 'flex gap-2' },
-                    React.createElement('button', {
-                        onClick: () => {
-                            if (currentExerciseIdx > 0) {
-                                setCurrentExerciseIdx(currentExerciseIdx - 1);
-                                setTimerSeconds(0);
-                                setIsTimerRunning(false);
-                            }
-                        },
-                        disabled: currentExerciseIdx === 0,
-                        className: 'px-5 py-4 bg-slate-800 disabled:opacity-50 rounded-2xl text-white'
-                    }, React.createElement(Icon, { name: 'arrowLeft', size: 20 })),
-                    React.createElement('button', {
-                        onClick: () => {
-                            if (isLastExercise) {
-                                alert('恭喜完成今日訓練！💪');
-                                setCurrentPage('home');
-                            } else {
-                                setCurrentExerciseIdx(currentExerciseIdx + 1);
-                                setTimerSeconds(0);
-                                setIsTimerRunning(false);
-                            }
-                        },
-                        className: 'flex-1 py-4 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl font-bold text-white shadow-2xl shadow-cyan-500/30 flex items-center justify-center gap-2'
-                    }, isLastExercise ? '完成訓練 ✓' : React.createElement(React.Fragment, null, '下一個 ', React.createElement(Icon, { name: 'chevronRight', size: 20 })))
-                )
+                React.createElement(Icon, { name: 'chevronRight', size: 20, className: 'text-slate-500' })
             )
-        );
-    }
+        )
+    );
+}
 
-    // ============================================
-    // 進度頁
-    // ============================================
-    if (currentPage === 'stats') {
-        const dates = Object.keys(progress).sort().reverse().slice(0, 14);
-        const totalWorkouts = Object.values(progress).reduce((sum, day) => sum + Object.keys(day).length, 0);
-        
-        return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black text-white' },
-            React.createElement('div', { className: 'px-5 pt-6 pb-4 sticky top-0 bg-slate-950/95 backdrop-blur z-20 border-b border-slate-800' },
+// ============================================
+// 自訂頁
+// ============================================
+if (currentPage === 'customize' && selectedDay) {
+    const template = defaultTemplates[selectedDay];
+    const exercises = getDayExercises(selectedDay);
+    const isCustom = !!customWorkouts[selectedDay];
+    
+    return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black text-white' },
+        React.createElement(Toast),
+        React.createElement(SwapModal),
+        React.createElement(DetailModal),
+        React.createElement('div', { className: 'px-5 pt-6 pb-4 sticky top-0 bg-slate-950/95 backdrop-blur z-20 border-b border-slate-800' },
+            React.createElement('div', { className: 'flex items-center justify-between mb-2' },
                 React.createElement('button', {
                     onClick: () => setCurrentPage('home'),
-                    className: 'flex items-center gap-1 text-slate-400 mb-2'
+                    className: 'flex items-center gap-1 text-slate-400'
                 }, React.createElement(Icon, { name: 'arrowLeft', size: 20 }), ' 返回'),
-                React.createElement('h2', { className: 'text-2xl font-bold text-white flex items-center gap-2' },
-                    React.createElement(Icon, { name: 'trendUp', size: 24, className: 'text-cyan-400' }), ' 訓練進度'
+                isCustom && React.createElement('button', {
+                    onClick: () => resetCustomWorkout(selectedDay),
+                    className: 'text-xs text-rose-400 flex items-center gap-1 px-3 py-1.5 bg-rose-950/30 rounded-full border border-rose-700/30'
+                }, React.createElement(Icon, { name: 'refresh', size: 12 }), ' 重置預設')
+            ),
+            React.createElement('h2', { className: 'text-2xl font-bold text-white flex items-center gap-2' },
+                React.createElement('span', { className: 'text-3xl' }, template.icon), ' ', template.name
+            ),
+            React.createElement('p', { className: 'text-sm text-slate-400 mt-1' }, '點擊動作可替換或查看詳情')
+        ),
+        React.createElement('div', { className: 'px-5 pb-32 pt-4 space-y-3' },
+            exercises.map((exName, idx) => {
+                const ex = exerciseDB[exName];
+                if (!ex) return null;
+                const config = durationConfigs[duration];
+                return React.createElement('div', {
+                    key: `${exName}-${idx}`,
+                    className: 'bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden'
+                },
+                    React.createElement('div', { className: 'p-4' },
+                        React.createElement('div', { className: 'flex justify-between items-start mb-3' },
+                            React.createElement('div', { className: 'flex-1' },
+                                React.createElement('div', { className: 'flex items-center gap-2 mb-1' },
+                                    React.createElement('span', { className: 'text-xs text-slate-500 font-mono' }, `#${idx + 1}`),
+                                    React.createElement('h3', { className: 'font-bold text-white text-lg' }, exName)
+                                ),
+                                React.createElement('p', { className: 'text-xs text-slate-400' }, ex.primaryDetail)
+                            ),
+                            React.createElement('div', { className: 'flex gap-1' },
+                                [1, 2, 3].map(i => React.createElement('div', {
+                                    key: i,
+                                    className: `w-1.5 h-5 rounded-full ${i <= ex.difficulty ? 'bg-amber-400' : 'bg-slate-700'}`
+                                }))
+                            )
+                        ),
+                        React.createElement(MuscleBadges, { primary: ex.primary, secondary: ex.secondary }),
+                        React.createElement('div', { className: 'flex gap-2 mt-3 text-xs' },
+                            React.createElement('span', { className: 'px-2 py-1 bg-slate-800 rounded-lg text-slate-400' },
+                                `${config.setsPerExercise}組 × ${ex.defaultReps}下`
+                            ),
+                            React.createElement('span', { className: 'px-2 py-1 bg-slate-800 rounded-lg text-blue-400' }, ex.defaultWeight)
+                        ),
+                        React.createElement('div', { className: 'flex gap-2 mt-3' },
+                            React.createElement('button', {
+                                onClick: () => setShowDetailModal(exName),
+                                className: 'flex-1 py-2 bg-slate-800 rounded-xl text-xs font-semibold text-slate-300 flex items-center justify-center gap-1'
+                            }, React.createElement(Icon, { name: 'info', size: 14 }), ' 詳情'),
+                            React.createElement('button', {
+                                onClick: () => setShowSwapModal({ exercise: exName, idx, day: selectedDay }),
+                                className: 'flex-1 py-2 bg-slate-800 rounded-xl text-xs font-semibold text-cyan-400 flex items-center justify-center gap-1'
+                            }, React.createElement(Icon, { name: 'refresh', size: 14 }), ' 替換')
+                        )
+                    )
+                );
+            })
+        ),
+        React.createElement('div', { className: 'fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black to-transparent' },
+            React.createElement('button', {
+                onClick: () => startTraining(selectedDay),
+                className: 'w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl font-bold text-white text-lg shadow-2xl shadow-cyan-500/30 flex items-center justify-center gap-2'
+            }, React.createElement(Icon, { name: 'play', size: 20 }), ' 開始訓練')
+        )
+    );
+}
+
+// ============================================
+// 訓練頁
+// ============================================
+if (currentPage === 'training' && selectedDay) {
+    const exercises = getDayExercises(selectedDay);
+    const currentExName = exercises[currentExerciseIdx];
+    const ex = getExerciseConfig(currentExName);
+    const setsForExercise = completedSets[currentExerciseIdx] || [];
+    const isExerciseDone = setsForExercise.length >= ex.sets;
+    const isLastExercise = currentExerciseIdx === exercises.length - 1;
+    
+    return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black text-white' },
+        React.createElement(InputModal),
+        React.createElement(DetailModal),
+        React.createElement('div', { className: 'sticky top-0 z-20 bg-slate-950/95 backdrop-blur border-b border-slate-800' },
+            React.createElement('div', { className: 'px-5 pt-4 pb-3' },
+                React.createElement('div', { className: 'flex justify-between items-center mb-2' },
+                    React.createElement('button', {
+                        onClick: () => { if (confirm('確定要結束本次訓練嗎？')) setCurrentPage('home'); },
+                        className: 'text-slate-400'
+                    }, React.createElement(Icon, { name: 'x', size: 20 })),
+                    React.createElement('p', { className: 'text-xs text-slate-400 font-mono' }, `${currentExerciseIdx + 1} / ${exercises.length}`)
+                ),
+                React.createElement('div', { className: 'w-full bg-slate-800 rounded-full h-1.5 overflow-hidden' },
+                    React.createElement('div', {
+                        className: 'bg-gradient-to-r from-cyan-400 to-blue-400 h-full rounded-full transition-all duration-500',
+                        style: { width: `${((currentExerciseIdx + (setsForExercise.length / ex.sets)) / exercises.length) * 100}%` }
+                    })
+                )
+            )
+        ),
+        React.createElement('div', { className: 'px-5 pt-4 pb-32 space-y-4' },
+            React.createElement('div', { className: 'bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-700 rounded-3xl p-5' },
+                React.createElement('div', { className: 'flex justify-between items-start mb-3' },
+                    React.createElement('div', { className: 'flex-1' },
+                        React.createElement('h2', { className: 'text-3xl font-black text-white mb-2' }, currentExName),
+                        React.createElement(MuscleBadges, { primary: ex.primary, secondary: ex.secondary })
+                    ),
+                    React.createElement('button', {
+                        onClick: () => setShowDetailModal(currentExName),
+                        className: 'p-2 bg-slate-800 rounded-xl border border-slate-700'
+                    }, React.createElement(Icon, { name: 'info', size: 18, className: 'text-cyan-400' }))
+                ),
+                React.createElement('p', { className: 'text-sm text-slate-300 mt-3' }, ex.primaryDetail),
+                React.createElement('div', { className: 'grid grid-cols-3 gap-2 mt-4' },
+                    React.createElement('div', { className: 'bg-slate-900/70 rounded-xl p-2.5 text-center' },
+                        React.createElement('p', { className: 'text-[10px] text-slate-400 uppercase' }, '組數'),
+                        React.createElement('p', { className: 'text-lg font-black text-amber-400' }, ex.sets)
+                    ),
+                    React.createElement('div', { className: 'bg-slate-900/70 rounded-xl p-2.5 text-center' },
+                        React.createElement('p', { className: 'text-[10px] text-slate-400 uppercase' }, '次數'),
+                        React.createElement('p', { className: 'text-lg font-black text-emerald-400' }, ex.defaultReps)
+                    ),
+                    React.createElement('div', { className: 'bg-slate-900/70 rounded-xl p-2.5 text-center' },
+                        React.createElement('p', { className: 'text-[10px] text-slate-400 uppercase' }, '重量'),
+                        React.createElement('p', { className: 'text-lg font-black text-blue-400' }, ex.defaultWeight)
+                    )
                 )
             ),
-            React.createElement('div', { className: 'px-5 pb-8 pt-4 space-y-4' },
-                React.createElement('div', { className: 'grid grid-cols-2 gap-3' },
-                    React.createElement('div', { className: 'bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-2xl p-4' },
-                        React.createElement('p', { className: 'text-xs text-cyan-400 uppercase tracking-wider mb-1' }, '總訓練次數'),
-                        React.createElement('p', { className: 'text-3xl font-black text-white' }, totalWorkouts)
-                    ),
-                    React.createElement('div', { className: 'bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 rounded-2xl p-4' },
-                        React.createElement('p', { className: 'text-xs text-emerald-400 uppercase tracking-wider mb-1' }, '最近訓練日'),
-                        React.createElement('p', { className: 'text-3xl font-black text-white' }, dates.length),
-                        React.createElement('p', { className: 'text-xs text-slate-400' }, '最近2週')
-                    )
-                ),
-                dates.length === 0 ? React.createElement('div', { className: 'bg-slate-900/50 border border-slate-800 rounded-3xl p-8 text-center' },
-                    React.createElement(Icon, { name: 'dumbbell', size: 48, className: 'text-slate-600 mx-auto mb-3' }),
-                    React.createElement('p', { className: 'text-slate-400' }, '尚無訓練記錄'),
-                    React.createElement('p', { className: 'text-xs text-slate-500 mt-1' }, '開始第一次訓練吧！')
-                ) : React.createElement('div', { className: 'space-y-3' },
-                    React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-widest px-2' }, '訓練歷史'),
-                    dates.map(date => {
-                        const dayWorkouts = progress[date] || {};
-                        return React.createElement('div', { key: date, className: 'bg-slate-900/50 border border-slate-800 rounded-2xl p-4' },
-                            React.createElement('p', { className: 'font-semibold text-white mb-2' },
-                                new Date(date).toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'long' })
-                            ),
-                            Object.entries(dayWorkouts).map(([day, sets]) => {
-                                const template = defaultTemplates[day];
-                                const exercises = customWorkouts[day] || template?.exercises || [];
-                                return React.createElement('div', { key: day, className: 'bg-slate-800/50 rounded-xl p-3 mt-2' },
-                                    React.createElement('p', { className: 'text-sm font-semibold text-cyan-300 flex items-center gap-2 mb-2' },
-                                        React.createElement('span', { className: 'text-lg' }, template?.icon),
-                                        template?.name
-                                    ),
-                                    React.createElement('div', { className: 'space-y-1' },
-                                        sets.map((reps, idx) => reps.length > 0 && React.createElement('div', {
-                                            key: idx,
-                                            className: 'flex justify-between text-xs'
-                                        },
-                                            React.createElement('span', { className: 'text-slate-400' }, exercises[idx]),
-                                            React.createElement('span', { className: 'text-emerald-400 font-mono' }, `${reps.join(' • ')}下`)
-                                        ))
-                                    )
-                                );
-                            })
+            React.createElement('div', { className: 'bg-slate-900/50 border border-slate-800 rounded-3xl p-5' },
+                React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-wider mb-3' }, '本動作進度'),
+                React.createElement('div', { className: 'grid grid-cols-4 gap-2 mb-4' },
+                    Array.from({ length: ex.sets }).map((_, idx) => {
+                        const isDone = idx < setsForExercise.length;
+                        const isNext = idx === setsForExercise.length && !isExerciseDone;
+                        return React.createElement('button', {
+                            key: idx,
+                            onClick: () => { if (isNext) setShowInputModal({ setNum: idx + 1, target: ex.defaultReps }); },
+                            disabled: !isNext,
+                            className: `aspect-square rounded-2xl border-2 flex flex-col items-center justify-center ${isDone ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : isNext ? 'bg-cyan-500/10 border-cyan-500 text-cyan-300 animate-pulse' : 'bg-slate-800/30 border-slate-700 text-slate-600'}`
+                        },
+                            isDone ? React.createElement(React.Fragment, null,
+                                React.createElement(Icon, { name: 'check', size: 20 }),
+                                React.createElement('span', { className: 'text-xs font-bold mt-1' }, `${setsForExercise[idx]}下`)
+                            ) : React.createElement('span', { className: 'text-xs font-bold' }, `第${idx + 1}組`)
                         );
                     })
                 ),
-                React.createElement('div', { className: 'bg-blue-950/30 border border-blue-700/30 rounded-2xl p-4' },
-                    React.createElement('p', { className: 'text-sm font-semibold text-blue-300 mb-2' }, '💾 備份建議'),
-                    React.createElement('p', { className: 'text-xs text-slate-300 leading-relaxed' }, '所有數據儲存在你的設備上。建議每月截圖此頁面備份，預防數據遺失。')
+                !isExerciseDone && React.createElement('div', { className: 'bg-slate-800/50 rounded-2xl p-4 text-center' },
+                    React.createElement('p', { className: 'text-xs text-slate-400 mb-2' }, `休息計時器（建議${ex.rest}秒）`),
+                    React.createElement('p', { className: 'text-4xl font-black font-mono text-cyan-400 mb-3' }, formatTime(timerSeconds)),
+                    React.createElement('div', { className: 'flex gap-2 justify-center' },
+                        React.createElement('button', {
+                            onClick: () => setIsTimerRunning(!isTimerRunning),
+                            className: 'px-6 py-2.5 bg-cyan-500 rounded-xl text-white font-semibold text-sm flex items-center gap-2'
+                        }, React.createElement(Icon, { name: isTimerRunning ? 'pause' : 'play', size: 16 }),
+                           isTimerRunning ? '暫停' : '開始'),
+                        React.createElement('button', {
+                            onClick: () => { setTimerSeconds(0); setIsTimerRunning(false); },
+                            className: 'px-4 py-2.5 bg-slate-700 rounded-xl text-slate-300 font-semibold text-sm'
+                        }, '重置')
+                    )
+                ),
+                isExerciseDone && React.createElement('div', { className: 'bg-emerald-500/20 border border-emerald-500/30 rounded-2xl p-4 text-center' },
+                    React.createElement(Icon, { name: 'check', size: 32, className: 'text-emerald-400 mx-auto mb-1' }),
+                    React.createElement('p', { className: 'text-emerald-300 font-bold' }, '這個動作完成了！'),
+                    React.createElement('p', { className: 'text-xs text-emerald-400/70 mt-1' }, '點下方按鈕進入下一個')
+                )
+            ),
+            !isLastExercise && React.createElement('div', { className: 'bg-slate-900/30 border border-slate-800 rounded-2xl p-4' },
+                React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-wider mb-2' }, '接下來'),
+                React.createElement('p', { className: 'font-semibold text-slate-300' }, exercises[currentExerciseIdx + 1]),
+                React.createElement('div', { className: 'mt-2' },
+                    React.createElement(MuscleBadges, {
+                        primary: exerciseDB[exercises[currentExerciseIdx + 1]]?.primary || [],
+                        secondary: []
+                    })
                 )
             )
-        );
-    }
+        ),
+        React.createElement('div', { className: 'fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black via-black to-transparent' },
+            React.createElement('div', { className: 'flex gap-2' },
+                React.createElement('button', {
+                    onClick: () => {
+                        if (currentExerciseIdx > 0) {
+                            setCurrentExerciseIdx(currentExerciseIdx - 1);
+                            setTimerSeconds(0);
+                            setIsTimerRunning(false);
+                        }
+                    },
+                    disabled: currentExerciseIdx === 0,
+                    className: 'px-5 py-4 bg-slate-800 disabled:opacity-50 rounded-2xl text-white'
+                }, React.createElement(Icon, { name: 'arrowLeft', size: 20 })),
+                React.createElement('button', {
+                    onClick: () => {
+                        if (isLastExercise) {
+                            alert('恭喜完成今日訓練！💪');
+                            setCurrentPage('home');
+                        } else {
+                            setCurrentExerciseIdx(currentExerciseIdx + 1);
+                            setTimerSeconds(0);
+                            setIsTimerRunning(false);
+                        }
+                    },
+                    className: 'flex-1 py-4 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl font-bold text-white shadow-2xl shadow-cyan-500/30 flex items-center justify-center gap-2'
+                }, isLastExercise ? '完成訓練 ✓' : React.createElement(React.Fragment, null, '下一個 ', React.createElement(Icon, { name: 'chevronRight', size: 20 })))
+            )
+        )
+    );
+}
 
-    return null;
+// ============================================
+// 進度頁
+// ============================================
+if (currentPage === 'stats') {
+    const dates = Object.keys(progress).sort().reverse().slice(0, 14);
+    const totalWorkouts = Object.values(progress).reduce((sum, day) => sum + Object.keys(day).length, 0);
+    
+    return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black text-white' },
+        React.createElement('div', { className: 'px-5 pt-6 pb-4 sticky top-0 bg-slate-950/95 backdrop-blur z-20 border-b border-slate-800' },
+            React.createElement('button', {
+                onClick: () => setCurrentPage('home'),
+                className: 'flex items-center gap-1 text-slate-400 mb-2'
+            }, React.createElement(Icon, { name: 'arrowLeft', size: 20 }), ' 返回'),
+            React.createElement('h2', { className: 'text-2xl font-bold text-white flex items-center gap-2' },
+                React.createElement(Icon, { name: 'trendUp', size: 24, className: 'text-cyan-400' }), ' 訓練進度'
+            )
+        ),
+        React.createElement('div', { className: 'px-5 pb-8 pt-4 space-y-4' },
+            React.createElement('div', { className: 'grid grid-cols-2 gap-3' },
+                React.createElement('div', { className: 'bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-2xl p-4' },
+                    React.createElement('p', { className: 'text-xs text-cyan-400 uppercase tracking-wider mb-1' }, '總訓練次數'),
+                    React.createElement('p', { className: 'text-3xl font-black text-white' }, totalWorkouts)
+                ),
+                React.createElement('div', { className: 'bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 rounded-2xl p-4' },
+                    React.createElement('p', { className: 'text-xs text-emerald-400 uppercase tracking-wider mb-1' }, '最近訓練日'),
+                    React.createElement('p', { className: 'text-3xl font-black text-white' }, dates.length),
+                    React.createElement('p', { className: 'text-xs text-slate-400' }, '最近2週')
+                )
+            ),
+            dates.length === 0 ? React.createElement('div', { className: 'bg-slate-900/50 border border-slate-800 rounded-3xl p-8 text-center' },
+                React.createElement(Icon, { name: 'dumbbell', size: 48, className: 'text-slate-600 mx-auto mb-3' }),
+                React.createElement('p', { className: 'text-slate-400' }, '尚無訓練記錄'),
+                React.createElement('p', { className: 'text-xs text-slate-500 mt-1' }, '開始第一次訓練吧！')
+            ) : React.createElement('div', { className: 'space-y-3' },
+                React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-widest px-2' }, '訓練歷史'),
+                dates.map(date => {
+                    const dayWorkouts = progress[date] || {};
+                    return React.createElement('div', { key: date, className: 'bg-slate-900/50 border border-slate-800 rounded-2xl p-4' },
+                        React.createElement('p', { className: 'font-semibold text-white mb-2' },
+                            new Date(date).toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'long' })
+                        ),
+                        Object.entries(dayWorkouts).map(([day, sets]) => {
+                            const template = defaultTemplates[day];
+                            const exercises = customWorkouts[day] || template?.exercises || [];
+                            return React.createElement('div', { key: day, className: 'bg-slate-800/50 rounded-xl p-3 mt-2' },
+                                React.createElement('p', { className: 'text-sm font-semibold text-cyan-300 flex items-center gap-2 mb-2' },
+                                    React.createElement('span', { className: 'text-lg' }, template?.icon),
+                                    template?.name
+                                ),
+                                React.createElement('div', { className: 'space-y-1' },
+                                    sets.map((reps, idx) => reps.length > 0 && React.createElement('div', {
+                                        key: idx,
+                                        className: 'flex justify-between text-xs'
+                                    },
+                                        React.createElement('span', { className: 'text-slate-400' }, exercises[idx]),
+                                        React.createElement('span', { className: 'text-emerald-400 font-mono' }, `${reps.join(' • ')}下`)
+                                    ))
+                                )
+                            );
+                        })
+                    );
+                })
+            ),
+            React.createElement('div', { className: 'bg-blue-950/30 border border-blue-700/30 rounded-2xl p-4' },
+                React.createElement('p', { className: 'text-sm font-semibold text-blue-300 mb-2' }, '💾 備份建議'),
+                React.createElement('p', { className: 'text-xs text-slate-300 leading-relaxed' }, '所有數據儲存在你的設備上。建議每月截圖此頁面備份，預防數據遺失。')
+            )
+        )
+    );
+}
+
+return null;
+```
+
 }
 
 // ============================================
 // 啟動應用
 // ============================================
-const root = ReactDOM.createRoot(document.getElementById('root'));
+const root = ReactDOM.createRoot(document.getElementById(‘root’));
 root.render(React.createElement(FitnessApp));
