@@ -61,7 +61,6 @@ body {
 <div id="root"></div>
 
 <script>
-// 卸載任何舊的 service worker（防止快取問題）
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(function(registrations) {
         for(let registration of registrations) {
@@ -69,8 +68,6 @@ if ('serviceWorker' in navigator) {
         }
     });
 }
-
-// 清除所有 cache
 if ('caches' in window) {
     caches.keys().then(function(names) {
         for (let name of names) {
@@ -78,8 +75,6 @@ if ('caches' in window) {
         }
     });
 }
-
-// 隱藏載入畫面
 window.addEventListener('load', function() {
     setTimeout(function() {
         var loading = document.getElementById('loading');
@@ -464,7 +459,7 @@ function FitnessApp() {
                     )
                 ),
                 React.createElement('a', {
-                    href: ex.englishName ? 'https://www.youtube.com/@ScottHermanFitness/search?query=' + encodeURIComponent(ex.englishName) : 'https://www.youtube.com/results?search_query=' + encodeURIComponent(showDetailModal + ' tutorial'),
+                    href: ex.englishName ? 'https://www.youtube.com/results?search_query=' + encodeURIComponent('how to ' + ex.englishName + ' proper form') : 'https://www.youtube.com/results?search_query=' + encodeURIComponent(showDetailModal + ' how to'),
                     target: '_blank',
                     rel: 'noopener noreferrer',
                     className: 'block w-full bg-gradient-to-r from-red-600/20 to-red-500/20 border border-red-500/30 rounded-2xl p-4 active:scale-95 transition'
@@ -478,7 +473,7 @@ function FitnessApp() {
                             ),
                             React.createElement('div', null,
                                 React.createElement('p', { className: 'font-bold text-white text-sm' }, '觀看示範影片'),
-                                React.createElement('p', { className: 'text-xs text-red-300/80' }, 'Scott Herman Fitness 教學')
+                                React.createElement('p', { className: 'text-xs text-red-300/80' }, 'YouTube 教學影片')
                             )
                         ),
                         React.createElement('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'currentColor', className: 'text-red-400' },
