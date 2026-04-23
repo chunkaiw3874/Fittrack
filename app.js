@@ -218,7 +218,7 @@ const showToast = () => {
     setTimeout(() => setShowSaveToast(false), 2000);
 };
 
-const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+const formatTime = (s) => (Math.floor(s / 60)) + ':' + ((s % 60).toString().padStart(2, '0'));
 
 const getDayExercises = (day) => {
     const config = durationConfigs[duration];
@@ -269,12 +269,12 @@ const MuscleBadges = ({ primary, secondary, size = 'sm' }) => {
     const sizeClass = size === 'lg' ? 'text-sm px-3 py-1.5' : 'text-xs px-2 py-1';
     return React.createElement('div', { className: 'flex flex-wrap gap-1.5' },
         primary.map((m, idx) => React.createElement('span', {
-            key: `p-${idx}`,
-            className: `${sizeClass} ${muscleColors[m]?.bg || ''} ${muscleColors[m]?.border || ''} ${muscleColors[m]?.text || ''} border rounded-full font-semibold`
+            key: 'p-' + (idx),
+            className: (sizeClass) + ' ' + (muscleColors[m]?.bg || '') + ' ' + (muscleColors[m]?.border || '') + ' ' + (muscleColors[m]?.text || '') + ' border rounded-full font-semibold'
         }, m)),
         secondary.map((m, idx) => React.createElement('span', {
-            key: `s-${idx}`,
-            className: `${sizeClass} bg-slate-800 border border-slate-700 text-slate-400 rounded-full`
+            key: 's-' + (idx),
+            className: (sizeClass) + ' bg-slate-800 border border-slate-700 text-slate-400 rounded-full'
         }, m))
     );
 };
@@ -294,8 +294,8 @@ const InputModal = () => {
         className: 'bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-sm',
         onClick: e => e.stopPropagation()
     },
-        React.createElement('h3', { className: 'text-lg font-bold text-cyan-300 mb-2' }, `第 ${showInputModal.setNum} 組完成幾下？`),
-        React.createElement('p', { className: 'text-sm text-slate-400 mb-4' }, `目標：${showInputModal.target}`),
+        React.createElement('h3', { className: 'text-lg font-bold text-cyan-300 mb-2' }, '第 ' + (showInputModal.setNum) + ' 組完成幾下？'),
+        React.createElement('p', { className: 'text-sm text-slate-400 mb-4' }, '目標：' + (showInputModal.target)),
         React.createElement('input', {
             type: 'number',
             value: inputValue,
@@ -371,7 +371,7 @@ const DetailModal = () => {
                 )
             ),
             React.createElement('a', {
-                href: ex.englishName ? `https://www.youtube.com/@ScottHermanFitness/search?query=${encodeURIComponent(ex.englishName)}` : `https://www.youtube.com/results?search_query=${encodeURIComponent(showDetailModal + ' tutorial')}`,
+                href: ex.englishName ? 'https://www.youtube.com/@ScottHermanFitness/search?query=' + encodeURIComponent(ex.englishName) : 'https://www.youtube.com/results?search_query=' + encodeURIComponent(showDetailModal + ' tutorial'),
                 target: '_blank',
                 rel: 'noopener noreferrer',
                 className: 'block w-full bg-gradient-to-r from-red-600/20 to-red-500/20 border border-red-500/30 rounded-2xl p-4 active:scale-95 transition'
@@ -399,7 +399,7 @@ const DetailModal = () => {
                 ),
                 React.createElement('ul', { className: 'space-y-2' },
                     ex.tips.map((tip, idx) => React.createElement('li', { key: idx, className: 'text-sm text-slate-200 flex gap-2' },
-                        React.createElement('span', { className: 'text-emerald-400 font-bold' }, `${idx + 1}.`),
+                        React.createElement('span', { className: 'text-emerald-400 font-bold' }, (idx + 1) + '.'),
                         React.createElement('span', null, tip)
                     ))
                 )
@@ -436,7 +436,7 @@ const SwapModal = () => {
                     React.createElement('button', {
                         key: f.id,
                         onClick: () => setFilterRegion(f.id),
-                        className: `px-3 py-1.5 rounded-full text-xs whitespace-nowrap font-semibold ${filterRegion === f.id ? 'bg-cyan-500 text-white' : 'bg-slate-800 text-slate-400 border border-slate-700'}`
+                        className: 'px-3 py-1.5 rounded-full text-xs whitespace-nowrap font-semibold ' + (filterRegion === f.id ? 'bg-cyan-500 text-white' : 'bg-slate-800 text-slate-400 border border-slate-700')
                     }, f.label)
                 )
             )
@@ -459,7 +459,7 @@ const SwapModal = () => {
                     React.createElement('div', { className: 'flex gap-1' },
                         [1, 2, 3].map(i => React.createElement('div', {
                             key: i,
-                            className: `w-1.5 h-1.5 rounded-full ${i <= opt.difficulty ? 'bg-amber-400' : 'bg-slate-700'}`
+                            className: 'w-1.5 h-1.5 rounded-full ' + (i <= opt.difficulty ? 'bg-amber-400' : 'bg-slate-700')
                         }))
                     )
                 ),
@@ -493,11 +493,11 @@ const SettingsModal = () => {
                     Object.entries(durationConfigs).map(([min, config]) => React.createElement('button', {
                         key: min,
                         onClick: () => saveSettings(parseInt(min)),
-                        className: `p-4 rounded-2xl border-2 ${duration === parseInt(min) ? 'bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border-cyan-500 text-white' : 'bg-slate-800/50 border-slate-700 text-slate-400'}`
+                        className: 'p-4 rounded-2xl border-2 ' + (duration === parseInt(min) ? 'bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border-cyan-500 text-white' : 'bg-slate-800/50 border-slate-700 text-slate-400')
                     },
                         React.createElement('p', { className: 'text-2xl font-bold' }, min, React.createElement('span', { className: 'text-sm' }, '分鐘')),
                         React.createElement('p', { className: 'text-xs mt-1 opacity-75' }, config.label),
-                        React.createElement('p', { className: 'text-xs mt-1 opacity-75' }, `${config.exerciseCount}動作 × ${config.setsPerExercise}組`)
+                        React.createElement('p', { className: 'text-xs mt-1 opacity-75' }, (config.exerciseCount) + '動作 × ' + (config.setsPerExercise) + '組')
                     ))
                 )
             ),
@@ -540,9 +540,9 @@ if (currentPage === 'home') {
                 React.createElement('div', { className: 'flex justify-between items-center' },
                     React.createElement('div', null,
                         React.createElement('p', { className: 'text-xs text-cyan-400 uppercase tracking-wider mb-1' }, '當前設定'),
-                        React.createElement('p', { className: 'text-2xl font-bold text-white' }, `${duration}分鐘訓練`),
+                        React.createElement('p', { className: 'text-2xl font-bold text-white' }, (duration) + '分鐘訓練'),
                         React.createElement('p', { className: 'text-xs text-slate-400 mt-1' },
-                            `${durationConfigs[duration].exerciseCount}動作 × ${durationConfigs[duration].setsPerExercise}組 · ${durationConfigs[duration].label}模式`
+                            (durationConfigs[duration].exerciseCount) + '動作 × ' + (durationConfigs[duration].setsPerExercise) + '組 · ' + (durationConfigs[duration].label) + '模式'
                         )
                     ),
                     React.createElement('button', {
@@ -565,7 +565,7 @@ if (currentPage === 'home') {
                     
                     return React.createElement('div', {
                         key: key,
-                        className: `relative bg-slate-900/50 backdrop-blur border rounded-3xl overflow-hidden ${isRecommended ? 'border-cyan-500/50 shadow-lg shadow-cyan-500/10' : 'border-slate-800'}`
+                        className: 'relative bg-slate-900/50 backdrop-blur border rounded-3xl overflow-hidden ' + (isRecommended ? 'border-cyan-500/50 shadow-lg shadow-cyan-500/10' : 'border-slate-800')
                     },
                         isRecommended && React.createElement('div', {
                             className: 'absolute top-0 right-0 bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg'
@@ -649,14 +649,14 @@ if (currentPage === 'customize' && selectedDay) {
                 if (!ex) return null;
                 const config = durationConfigs[duration];
                 return React.createElement('div', {
-                    key: `${exName}-${idx}`,
+                    key: (exName) + '-' + (idx),
                     className: 'bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden'
                 },
                     React.createElement('div', { className: 'p-4' },
                         React.createElement('div', { className: 'flex justify-between items-start mb-3' },
                             React.createElement('div', { className: 'flex-1' },
                                 React.createElement('div', { className: 'flex items-center gap-2 mb-1' },
-                                    React.createElement('span', { className: 'text-xs text-slate-500 font-mono' }, `#${idx + 1}`),
+                                    React.createElement('span', { className: 'text-xs text-slate-500 font-mono' }, '#' + (idx + 1)),
                                     React.createElement('h3', { className: 'font-bold text-white text-lg' }, exName)
                                 ),
                                 React.createElement('p', { className: 'text-xs text-slate-400' }, ex.primaryDetail)
@@ -664,14 +664,14 @@ if (currentPage === 'customize' && selectedDay) {
                             React.createElement('div', { className: 'flex gap-1' },
                                 [1, 2, 3].map(i => React.createElement('div', {
                                     key: i,
-                                    className: `w-1.5 h-5 rounded-full ${i <= ex.difficulty ? 'bg-amber-400' : 'bg-slate-700'}`
+                                    className: 'w-1.5 h-5 rounded-full ' + (i <= ex.difficulty ? 'bg-amber-400' : 'bg-slate-700')
                                 }))
                             )
                         ),
                         React.createElement(MuscleBadges, { primary: ex.primary, secondary: ex.secondary }),
                         React.createElement('div', { className: 'flex gap-2 mt-3 text-xs' },
                             React.createElement('span', { className: 'px-2 py-1 bg-slate-800 rounded-lg text-slate-400' },
-                                `${config.setsPerExercise}組 × ${ex.defaultReps}下`
+                                (config.setsPerExercise) + '組 × ' + (ex.defaultReps) + '下'
                             ),
                             React.createElement('span', { className: 'px-2 py-1 bg-slate-800 rounded-lg text-blue-400' }, ex.defaultWeight)
                         ),
@@ -719,12 +719,12 @@ if (currentPage === 'training' && selectedDay) {
                         onClick: () => { if (confirm('確定要結束本次訓練嗎？')) setCurrentPage('home'); },
                         className: 'text-slate-400'
                     }, React.createElement(Icon, { name: 'x', size: 20 })),
-                    React.createElement('p', { className: 'text-xs text-slate-400 font-mono' }, `${currentExerciseIdx + 1} / ${exercises.length}`)
+                    React.createElement('p', { className: 'text-xs text-slate-400 font-mono' }, (currentExerciseIdx + 1) + ' / ' + (exercises.length))
                 ),
                 React.createElement('div', { className: 'w-full bg-slate-800 rounded-full h-1.5 overflow-hidden' },
                     React.createElement('div', {
                         className: 'bg-gradient-to-r from-cyan-400 to-blue-400 h-full rounded-full transition-all duration-500',
-                        style: { width: `${((currentExerciseIdx + (setsForExercise.length / ex.sets)) / exercises.length) * 100}%` }
+                        style: { width: (((currentExerciseIdx + (setsForExercise.length / ex.sets)) / exercises.length) * 100) + '%' }
                     })
                 )
             )
@@ -767,17 +767,17 @@ if (currentPage === 'training' && selectedDay) {
                             key: idx,
                             onClick: () => { if (isNext) setShowInputModal({ setNum: idx + 1, target: ex.defaultReps }); },
                             disabled: !isNext,
-                            className: `aspect-square rounded-2xl border-2 flex flex-col items-center justify-center ${isDone ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : isNext ? 'bg-cyan-500/10 border-cyan-500 text-cyan-300 animate-pulse' : 'bg-slate-800/30 border-slate-700 text-slate-600'}`
+                            className: 'aspect-square rounded-2xl border-2 flex flex-col items-center justify-center ' + (isDone ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : isNext ? 'bg-cyan-500/10 border-cyan-500 text-cyan-300 animate-pulse' : 'bg-slate-800/30 border-slate-700 text-slate-600')
                         },
                             isDone ? React.createElement(React.Fragment, null,
                                 React.createElement(Icon, { name: 'check', size: 20 }),
-                                React.createElement('span', { className: 'text-xs font-bold mt-1' }, `${setsForExercise[idx]}下`)
-                            ) : React.createElement('span', { className: 'text-xs font-bold' }, `第${idx + 1}組`)
+                                React.createElement('span', { className: 'text-xs font-bold mt-1' }, (setsForExercise[idx]) + '下')
+                            ) : React.createElement('span', { className: 'text-xs font-bold' }, '第' + (idx + 1) + '組')
                         );
                     })
                 ),
                 !isExerciseDone && React.createElement('div', { className: 'bg-slate-800/50 rounded-2xl p-4 text-center' },
-                    React.createElement('p', { className: 'text-xs text-slate-400 mb-2' }, `休息計時器（建議${ex.rest}秒）`),
+                    React.createElement('p', { className: 'text-xs text-slate-400 mb-2' }, '休息計時器（建議' + (ex.rest) + '秒）'),
                     React.createElement('p', { className: 'text-4xl font-black font-mono text-cyan-400 mb-3' }, formatTime(timerSeconds)),
                     React.createElement('div', { className: 'flex gap-2 justify-center' },
                         React.createElement('button', {
@@ -894,7 +894,7 @@ if (currentPage === 'stats') {
                                         className: 'flex justify-between text-xs'
                                     },
                                         React.createElement('span', { className: 'text-slate-400' }, exercises[idx]),
-                                        React.createElement('span', { className: 'text-emerald-400 font-mono' }, `${reps.join(' • ')}下`)
+                                        React.createElement('span', { className: 'text-emerald-400 font-mono' }, (reps.join(' • ')) + '下')
                                     ))
                                 )
                             );
