@@ -61,32 +61,6 @@ body {
 <div id="root"></div>
 
 <script>
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for(let registration of registrations) {
-            registration.unregister();
-        }
-    });
-}
-if ('caches' in window) {
-    caches.keys().then(function(names) {
-        for (let name of names) {
-            caches.delete(name);
-        }
-    });
-}
-window.addEventListener('load', function() {
-    setTimeout(function() {
-        var loading = document.getElementById('loading');
-        if (loading) {
-            loading.style.opacity = '0';
-            setTimeout(function() { loading.style.display = 'none'; }, 300);
-        }
-    }, 800);
-});
-</script>
-
-<script>
 // ============================================
 // FitTrack - Kevin 的健身計畫 PWA
 // ============================================
@@ -217,6 +191,50 @@ const exerciseDB = {
 };
 
 // ============================================
+// 健康餐資料庫
+// ============================================
+
+// 推薦的健康餐連鎖品牌（台灣，可用 Uber Eats 搜尋）
+const healthyRestaurants = [
+    { name: 'GET POWER 給力盒子', description: '高蛋白低脂、健身族首選', protein: '高', carbs: '低', tags: ['增肌', '減脂'], searchKey: 'GET POWER' },
+    { name: 'Miss Energy 低 GI 廚房', description: '低 GI 餐盒、平價選擇', protein: '中', carbs: '中', tags: ['低GI', '減脂'], searchKey: 'Miss Energy' },
+    { name: 'JohnnyBro 強尼兄弟健康廚房', description: '低脂低 GI 高蛋白、營養師設計', protein: '高', carbs: '低', tags: ['增肌', '營養師'], searchKey: 'JohnnyBro' },
+    { name: 'aone Eatery', description: '健康速食 + 果汁吧、卡路里計算', protein: '中', carbs: '中', tags: ['速食', '果汁'], searchKey: 'aone Eatery' },
+    { name: 'LIFE KITCHEN', description: '舒肥牛/豬里肌、低碳水', protein: '高', carbs: '低', tags: ['舒肥', '低碳'], searchKey: 'LIFE KITCHEN' },
+    { name: '蛋白盒子', description: '水炒技術、低脂高蛋白', protein: '高', carbs: '低', tags: ['高蛋白', '減脂'], searchKey: '蛋白盒子' },
+    { name: '彩碗 ColorBowl', description: '夏威夷 Poke 風格、自由搭配', protein: '高', carbs: '中', tags: ['沙拉', '客製'], searchKey: '彩碗 ColorBowl' },
+    { name: '波奇波奇 POKÉPOKÉ', description: '夏威夷 POKE、海鮮蛋白質', protein: '高', carbs: '中', tags: ['沙拉', '海鮮'], searchKey: 'POKEPOKE' },
+    { name: '隨主飡', description: '法式低卡、川燙保留營養', protein: '中', carbs: '低', tags: ['低卡', '法式'], searchKey: '隨主飡' },
+    { name: '果腹 Greatfood', description: '舒肥健康餐盒、UE 評分 4.7', protein: '高', carbs: '低', tags: ['舒肥', '高蛋白'], searchKey: '果腹' },
+];
+
+// 推薦的健康餐點 (可在一般餐廳找到)
+const healthyMeals = [
+    { name: '舒肥雞胸沙拉', restaurants: '健康餐盒店、沙拉店', protein: 30, carbs: 15, fiber: 6, tips: '請店家少醬或醬料另外放', searchKey: '舒肥雞胸 沙拉' },
+    { name: '烤鮭魚便當', restaurants: '日式定食、健康便當', protein: 28, carbs: 30, fiber: 4, tips: '可以換成糙米或藜麥', searchKey: '烤鮭魚 便當' },
+    { name: '牛肉舒肥便當', restaurants: '健身餐盒店', protein: 35, carbs: 25, fiber: 5, tips: '蔬菜加倍，飯減半', searchKey: '舒肥牛 便當' },
+    { name: '雞胸肉藜麥碗', restaurants: 'POKE店、沙拉店', protein: 32, carbs: 35, fiber: 7, tips: '選原味調味，避免甜醬', searchKey: '雞胸 藜麥碗' },
+    { name: '蒸魚定食', restaurants: '日式餐廳', protein: 30, carbs: 35, fiber: 4, tips: '配菜選燙青菜不要炸物', searchKey: '蒸魚 定食' },
+    { name: '希臘優格雞肉捲', restaurants: '輕食店、早午餐', protein: 25, carbs: 28, fiber: 5, tips: '用全麥皮、不加美乃滋', searchKey: '雞肉 捲餅' },
+    { name: '海南雞飯（去皮）', restaurants: '東南亞料理', protein: 30, carbs: 50, fiber: 2, tips: '請去皮、白飯減半', searchKey: '海南雞飯' },
+    { name: '清蒸海鮮拼盤', restaurants: '海鮮餐廳', protein: 35, carbs: 10, fiber: 3, tips: '搭配燙青菜最佳', searchKey: '清蒸海鮮' },
+    { name: '泰式打拋豬蓋飯', restaurants: '泰式餐廳、便當店', protein: 28, carbs: 45, fiber: 3, tips: '請少糖少油、飯改半碗', searchKey: '打拋豬' },
+    { name: '韓式部隊鍋（少麵）', restaurants: '韓式餐廳', protein: 25, carbs: 30, fiber: 6, tips: '少加麵、多加豆腐青菜', searchKey: '韓式 鍋' },
+];
+
+// 點餐技巧
+const orderingTips = [
+    { icon: '🍚', tip: '主食要求糙米、紫米或地瓜', why: '低 GI、纖維高' },
+    { icon: '🥗', tip: '青菜加倍或免費續加', why: '增加纖維、飽足感' },
+    { icon: '🥄', tip: '醬料另外放', why: '控制熱量和糖分攝取' },
+    { icon: '🍗', tip: '雞肉去皮、肉類選蒸/烤', why: '減少油脂攝取' },
+    { icon: '🚫', tip: '避免油炸、勾芡、糖醋', why: '熱量過高、含糖量大' },
+    { icon: '🥤', tip: '飲料選無糖茶、氣泡水', why: '避免液體熱量' },
+    { icon: '🥚', tip: '加蛋或加豆腐補蛋白', why: '便宜的蛋白質來源' },
+    { icon: '🌶️', tip: '清淡口味為佳', why: '減少鈉攝取、避免水腫' },
+];
+
+// ============================================
 // 訓練模板
 // ============================================
 const defaultTemplates = {
@@ -237,6 +255,8 @@ const durationConfigs = {
 // ============================================
 function FitnessApp() {
     const [currentPage, setCurrentPage] = useState('home');
+    const [mainTab, setMainTab] = useState('workout'); // 'workout' or 'food'
+    const [userLocation, setUserLocation] = useState(null);
     const [selectedDay, setSelectedDay] = useState(null);
     const [duration, setDuration] = useState('standard');
     const [customWorkouts, setCustomWorkouts] = useState({});
@@ -378,7 +398,13 @@ function FitnessApp() {
     
     // 啟動自動模式
     const startAutoMode = () => {
-        var ex = exerciseDB[exercises[currentExerciseIdx]];
+        // inline 計算當下的 exercises（不依賴外部 scope）
+        if (!selectedDay) return;
+        const config = durationConfigs[duration];
+        const baseExercises = customWorkouts[selectedDay] || (defaultTemplates[selectedDay] && defaultTemplates[selectedDay].exercises) || [];
+        const currentExercises = baseExercises.slice(0, config.exerciseCount);
+        const currentExName = currentExercises[currentExerciseIdx];
+        const ex = exerciseDB[currentExName];
         if (!ex) return;
         var seconds = parseSeconds(ex.defaultReps);
         setAutoSecondsLeft(seconds);
@@ -503,6 +529,39 @@ function FitnessApp() {
     const saveProgress = (newProgress) => {
         setProgress(newProgress);
         safeStorage.set('fittrack_progress', newProgress);
+    };
+    
+    // 取得使用者位置
+    const requestLocation = () => {
+        if (!navigator.geolocation) {
+            setUserLocation({ error: '此瀏覽器不支援位置功能' });
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                setUserLocation({
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                    granted: true
+                });
+            },
+            function(error) {
+                setUserLocation({ error: '無法取得位置：' + error.message });
+            },
+            { timeout: 10000, enableHighAccuracy: false }
+        );
+    };
+    
+    // 開啟 Uber Eats 搜尋
+    const openUberSearch = (keyword) => {
+        var url = 'https://www.ubereats.com/tw/search?q=' + encodeURIComponent(keyword);
+        window.open(url, '_blank');
+    };
+    
+    // 開啟 foodpanda 搜尋
+    const openPandaSearch = (keyword) => {
+        var url = 'https://www.foodpanda.com.tw/restaurants/new?q=' + encodeURIComponent(keyword);
+        window.open(url, '_blank');
     };
 
     const showToast = () => {
@@ -837,9 +896,215 @@ function FitnessApp() {
     };
 
     // ============================================
+    // 底部 Tab Bar
+    // ============================================
+    const BottomTabs = () => {
+        return React.createElement('div', { 
+            className: 'fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur border-t border-slate-800 z-30' 
+        },
+            React.createElement('div', { 
+                className: 'flex justify-around items-center px-4 py-2',
+                style: { paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))' }
+            },
+                React.createElement('button', {
+                    onClick: function() { setMainTab('workout'); },
+                    className: 'flex flex-col items-center gap-1 py-2 px-4 transition ' + (mainTab === 'workout' ? 'text-cyan-400' : 'text-slate-500')
+                },
+                    React.createElement('span', { className: 'text-2xl' }, '🏋️'),
+                    React.createElement('span', { className: 'text-[10px] font-bold' }, '健身')
+                ),
+                React.createElement('button', {
+                    onClick: function() { setMainTab('food'); },
+                    className: 'flex flex-col items-center gap-1 py-2 px-4 transition ' + (mainTab === 'food' ? 'text-emerald-400' : 'text-slate-500')
+                },
+                    React.createElement('span', { className: 'text-2xl' }, '🥗'),
+                    React.createElement('span', { className: 'text-[10px] font-bold' }, '健康餐')
+                )
+            )
+        );
+    };
+    
+    // ============================================
+    // 健康餐頁面
+    // ============================================
+    const FoodPage = () => {
+        return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black text-white' },
+            // 頂部
+            React.createElement('div', { className: 'px-5 pt-6 pb-4 sticky top-0 bg-gradient-to-b from-slate-950 via-slate-950/95 to-transparent z-20 backdrop-blur-sm' },
+                React.createElement('div', { className: 'flex justify-between items-start' },
+                    React.createElement('div', null,
+                        React.createElement('p', { className: 'text-xs text-emerald-400 font-mono uppercase tracking-widest mb-1' }, '🥗 健康外食'),
+                        React.createElement('h1', { className: 'text-3xl font-black bg-gradient-to-r from-white to-emerald-300 bg-clip-text text-transparent' }, '低碳 · 高蛋白 · 高纖維'),
+                        React.createElement('p', { className: 'text-sm text-slate-400 mt-1' }, '快速找到附近的健康餐選擇')
+                    )
+                )
+            ),
+            
+            React.createElement('div', { className: 'px-5 pb-32 space-y-4' },
+                // 位置提示卡
+                React.createElement('div', { className: 'bg-gradient-to-br from-emerald-500/10 to-cyan-500/10 border border-emerald-500/30 rounded-3xl p-5' },
+                    !userLocation ? React.createElement('div', { className: 'text-center' },
+                        React.createElement('p', { className: 'text-2xl mb-2' }, '📍'),
+                        React.createElement('p', { className: 'text-white font-bold mb-2' }, '允許定位以獲得最佳體驗'),
+                        React.createElement('p', { className: 'text-xs text-slate-400 mb-3' }, '搜尋會自動帶入你的位置'),
+                        React.createElement('button', {
+                            onClick: requestLocation,
+                            className: 'px-6 py-2.5 bg-emerald-500 rounded-xl text-white font-semibold text-sm'
+                        }, '取得位置')
+                    ) : userLocation.error ? React.createElement('div', { className: 'text-center' },
+                        React.createElement('p', { className: 'text-amber-400 text-sm' }, '⚠️ ' + userLocation.error),
+                        React.createElement('p', { className: 'text-xs text-slate-400 mt-1' }, '別擔心！搜尋仍會根據外送 App 內的設定運作')
+                    ) : React.createElement('div', { className: 'flex items-center gap-3' },
+                        React.createElement('span', { className: 'text-2xl' }, '✅'),
+                        React.createElement('div', null,
+                            React.createElement('p', { className: 'text-emerald-300 font-bold text-sm' }, '已取得位置'),
+                            React.createElement('p', { className: 'text-xs text-slate-400' }, '搜尋將顯示附近健康餐')
+                        )
+                    )
+                ),
+                
+                // 一鍵搜尋區
+                React.createElement('div', { className: 'space-y-2' },
+                    React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-widest mb-2 px-2' }, '🚀 一鍵搜尋（跳到 Uber Eats）'),
+                    React.createElement('div', { className: 'grid grid-cols-2 gap-2' },
+                        React.createElement('button', {
+                            onClick: function() { openUberSearch('健康餐'); },
+                            className: 'p-4 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-2xl text-left transition'
+                        },
+                            React.createElement('p', { className: 'text-2xl mb-1' }, '🥗'),
+                            React.createElement('p', { className: 'text-sm font-bold text-emerald-300' }, '健康餐'),
+                            React.createElement('p', { className: 'text-xs text-slate-400' }, '通用搜尋')
+                        ),
+                        React.createElement('button', {
+                            onClick: function() { openUberSearch('低 GI'); },
+                            className: 'p-4 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-2xl text-left transition'
+                        },
+                            React.createElement('p', { className: 'text-2xl mb-1' }, '🍱'),
+                            React.createElement('p', { className: 'text-sm font-bold text-blue-300' }, '低 GI 餐'),
+                            React.createElement('p', { className: 'text-xs text-slate-400' }, '低升糖指數')
+                        ),
+                        React.createElement('button', {
+                            onClick: function() { openUberSearch('健身餐'); },
+                            className: 'p-4 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 rounded-2xl text-left transition'
+                        },
+                            React.createElement('p', { className: 'text-2xl mb-1' }, '💪'),
+                            React.createElement('p', { className: 'text-sm font-bold text-purple-300' }, '健身餐'),
+                            React.createElement('p', { className: 'text-xs text-slate-400' }, '高蛋白為主')
+                        ),
+                        React.createElement('button', {
+                            onClick: function() { openUberSearch('沙拉'); },
+                            className: 'p-4 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 rounded-2xl text-left transition'
+                        },
+                            React.createElement('p', { className: 'text-2xl mb-1' }, '🥬'),
+                            React.createElement('p', { className: 'text-sm font-bold text-amber-300' }, '沙拉'),
+                            React.createElement('p', { className: 'text-xs text-slate-400' }, '高纖低卡')
+                        )
+                    )
+                ),
+                
+                // 推薦餐廳列表
+                React.createElement('div', { className: 'space-y-2' },
+                    React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-widest mb-2 px-2' }, '⭐ 推薦健康餐品牌'),
+                    healthyRestaurants.map(function(r, idx) {
+                        return React.createElement('div', {
+                            key: idx,
+                            className: 'bg-slate-900/50 border border-slate-800 rounded-2xl p-4'
+                        },
+                            React.createElement('div', { className: 'flex justify-between items-start mb-2' },
+                                React.createElement('div', { className: 'flex-1' },
+                                    React.createElement('p', { className: 'font-bold text-white' }, r.name),
+                                    React.createElement('p', { className: 'text-xs text-slate-400 mt-0.5' }, r.description)
+                                )
+                            ),
+                            React.createElement('div', { className: 'flex flex-wrap gap-1.5 mb-3' },
+                                React.createElement('span', { className: 'text-[10px] px-2 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-full' }, '蛋白：' + r.protein),
+                                React.createElement('span', { className: 'text-[10px] px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full' }, '碳水：' + r.carbs),
+                                r.tags.map(function(tag, tIdx) {
+                                    return React.createElement('span', { 
+                                        key: tIdx,
+                                        className: 'text-[10px] px-2 py-0.5 bg-slate-800 text-slate-400 border border-slate-700 rounded-full'
+                                    }, tag);
+                                })
+                            ),
+                            React.createElement('div', { className: 'flex gap-2' },
+                                React.createElement('button', {
+                                    onClick: function() { openUberSearch(r.searchKey); },
+                                    className: 'flex-1 py-2 bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-xs font-bold text-emerald-300 transition'
+                                }, '🛒 Uber Eats'),
+                                React.createElement('button', {
+                                    onClick: function() { openPandaSearch(r.searchKey); },
+                                    className: 'flex-1 py-2 bg-pink-500/20 border border-pink-500/30 rounded-xl text-xs font-bold text-pink-300 transition'
+                                }, '🐼 foodpanda')
+                            )
+                        );
+                    })
+                ),
+                
+                // 推薦菜單
+                React.createElement('div', { className: 'space-y-2' },
+                    React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-widest mb-2 px-2' }, '📋 推薦菜單（一般餐廳找得到）'),
+                    healthyMeals.map(function(m, idx) {
+                        return React.createElement('div', {
+                            key: idx,
+                            className: 'bg-slate-900/50 border border-slate-800 rounded-2xl p-4'
+                        },
+                            React.createElement('div', { className: 'mb-2' },
+                                React.createElement('p', { className: 'font-bold text-white' }, m.name),
+                                React.createElement('p', { className: 'text-xs text-slate-400 mt-0.5' }, '可在：' + m.restaurants)
+                            ),
+                            React.createElement('div', { className: 'grid grid-cols-3 gap-1.5 mb-2' },
+                                React.createElement('div', { className: 'bg-purple-500/10 border border-purple-500/30 rounded-lg py-1.5 text-center' },
+                                    React.createElement('p', { className: 'text-[9px] text-purple-400 uppercase' }, '蛋白'),
+                                    React.createElement('p', { className: 'text-sm font-bold text-purple-300' }, m.protein + 'g')
+                                ),
+                                React.createElement('div', { className: 'bg-amber-500/10 border border-amber-500/30 rounded-lg py-1.5 text-center' },
+                                    React.createElement('p', { className: 'text-[9px] text-amber-400 uppercase' }, '碳水'),
+                                    React.createElement('p', { className: 'text-sm font-bold text-amber-300' }, m.carbs + 'g')
+                                ),
+                                React.createElement('div', { className: 'bg-emerald-500/10 border border-emerald-500/30 rounded-lg py-1.5 text-center' },
+                                    React.createElement('p', { className: 'text-[9px] text-emerald-400 uppercase' }, '纖維'),
+                                    React.createElement('p', { className: 'text-sm font-bold text-emerald-300' }, m.fiber + 'g')
+                                )
+                            ),
+                            React.createElement('p', { className: 'text-xs text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-2 mb-2' }, '💡 ' + m.tips),
+                            React.createElement('button', {
+                                onClick: function() { openUberSearch(m.searchKey); },
+                                className: 'w-full py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-semibold text-slate-300 transition'
+                            }, '🔍 在 Uber Eats 搜尋')
+                        );
+                    })
+                ),
+                
+                // 點餐技巧
+                React.createElement('div', { className: 'space-y-2' },
+                    React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-widest mb-2 px-2' }, '💡 點餐技巧'),
+                    React.createElement('div', { className: 'bg-slate-900/50 border border-slate-800 rounded-2xl p-4 space-y-3' },
+                        orderingTips.map(function(t, idx) {
+                            return React.createElement('div', { key: idx, className: 'flex gap-3' },
+                                React.createElement('span', { className: 'text-2xl' }, t.icon),
+                                React.createElement('div', { className: 'flex-1' },
+                                    React.createElement('p', { className: 'text-sm font-semibold text-white' }, t.tip),
+                                    React.createElement('p', { className: 'text-xs text-slate-400 mt-0.5' }, '→ ' + t.why)
+                                )
+                            );
+                        })
+                    )
+                )
+            )
+        );
+    };
+    
+    // ============================================
     // 首頁
     // ============================================
     if (currentPage === 'home') {
+        // 如果在食物分頁，顯示 FoodPage 包在底部 tab bar 裡
+        if (mainTab === 'food') {
+            return React.createElement('div', null,
+                React.createElement(FoodPage),
+                React.createElement(BottomTabs)
+            );
+        }
         const today = new Date().getDay();
         const dayMap = { 1: 'monday', 2: 'tuesday', 4: 'thursday', 5: 'friday' };
         const recommendedDay = dayMap[today];
@@ -938,7 +1203,8 @@ function FitnessApp() {
                     ),
                     React.createElement(Icon, { name: 'chevronRight', size: 20, className: 'text-slate-500' })
                 )
-            )
+            ),
+            React.createElement(BottomTabs)
         );
     }
 
