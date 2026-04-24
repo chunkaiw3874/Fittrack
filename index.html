@@ -44,7 +44,7 @@ body {
 ::-webkit-scrollbar { display: none; }
 .no-select { -webkit-user-select: none; user-select: none; }
 #loading {
-    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
     background: #020617; z-index: 9999; transition: opacity 0.3s;
 }
 .spinner {
@@ -52,13 +52,80 @@ body {
     border-top: 4px solid #06b6d4; border-radius: 50%;
     animation: spin 1s linear infinite;
 }
+.loading-text {
+    margin-top: 20px; color: #64748b; font-size: 14px;
+}
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 
 </head>
 <body class="no-select">
-<div id="loading"><div class="spinner"></div></div>
+<div id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text" id="loading-status">載入中...</div>
+</div>
 <div id="root"></div>
+
+<script>
+// 卸載舊的 service worker（避免快取問題）
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for(var i = 0; i < registrations.length; i++) {
+            registrations[i].unregister();
+        }
+    });
+}
+
+// 清除舊的 cache
+if ('caches' in window) {
+    caches.keys().then(function(names) {
+        for(var i = 0; i < names.length; i++) {
+            caches.delete(names[i]);
+        }
+    });
+}
+
+// 隱藏載入畫面 - 多重保險
+function hideLoading() {
+    var loading = document.getElementById('loading');
+    if (loading) {
+        loading.style.opacity = '0';
+        setTimeout(function() { 
+            if (loading.parentNode) {
+                loading.parentNode.removeChild(loading);
+            }
+        }, 300);
+    }
+}
+
+// 安全機制：5 秒後強制隱藏 loading
+setTimeout(function() {
+    var loading = document.getElementById('loading');
+    if (loading) {
+        var status = document.getElementById('loading-status');
+        if (status) status.innerText = '稍候片刻...';
+    }
+}, 3000);
+
+// 終極保險：10 秒後一定隱藏
+setTimeout(function() {
+    hideLoading();
+}, 10000);
+
+// React 應用啟動後隱藏 loading
+window.addEventListener('load', function() {
+    setTimeout(hideLoading, 800);
+});
+
+// 檢測 React 渲染完成
+var checkInterval = setInterval(function() {
+    var root = document.getElementById('root');
+    if (root && root.children.length > 0) {
+        clearInterval(checkInterval);
+        hideLoading();
+    }
+}, 200);
+</script>
 
 <script>
 // ============================================
