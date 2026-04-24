@@ -246,6 +246,11 @@ function FitnessApp() {
     const [completedSets, setCompletedSets] = useState([]);
     const [timerSeconds, setTimerSeconds] = useState(0);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
+    // 自動計時模式新增的 state
+    const [autoMode, setAutoMode] = useState('idle'); // idle, exercising, resting, preparing, done
+    const [autoSecondsLeft, setAutoSecondsLeft] = useState(0);
+    const [soundEnabled, setSoundEnabled] = useState(true);
+    const [vibrationEnabled, setVibrationEnabled] = useState(false);
     
     const [showSwapModal, setShowSwapModal] = useState(null);
     const [showDetailModal, setShowDetailModal] = useState(null);
@@ -259,19 +264,19 @@ function FitnessApp() {
     useEffect(() => {
         const settings = safeStorage.get('fittrack_settings');
         if (settings?.duration) {
-            // 處理舊版本相容性：把數字轉換成等級
             var d = settings.duration;
             if (typeof d === 'number') {
                 if (d <= 20) d = 'quick';
                 else if (d <= 35) d = 'standard';
                 else d = 'deep';
             }
-            // 如果不是有效等級，用預設值
             if (d !== 'quick' && d !== 'standard' && d !== 'deep') {
                 d = 'standard';
             }
             setDuration(d);
         }
+        if (settings?.soundEnabled !== undefined) setSoundEnabled(settings.soundEnabled);
+        if (settings?.vibrationEnabled !== undefined) setVibrationEnabled(settings.vibrationEnabled);
         
         const workouts = safeStorage.get('fittrack_customWorkouts');
         if (workouts) setCustomWorkouts(workouts);
@@ -280,17 +285,204 @@ function FitnessApp() {
         if (prog) setProgress(prog);
     }, []);
 
-    // 計時器
+    // 計時器（手動模式）
     useEffect(() => {
         if (!isTimerRunning) return;
         const interval = setInterval(() => setTimerSeconds(s => s + 1), 1000);
         return () => clearInterval(interval);
     }, [isTimerRunning]);
+    
+    // 自動倒數計時器（用 functional updater 確保讀到最新狀態）
+    useEffect(() => {
+        if (autoMode === 'idle' || autoMode === 'done' || autoMode === 'paused') return;
+        if (autoSecondsLeft <= 0) return;
+        if (!selectedDay) return;
+        
+        // 在 effect 內計算當下的 exercises（不依賴外部）
+        const config = durationConfigs[duration];
+        const baseExercises = customWorkouts[selectedDay] || (defaultTemplates[selectedDay] && defaultTemplates[selectedDay].exercises) || [];
+        const currentExercises = baseExercises.slice(0, config.exerciseCount);
+        const currentExName = currentExercises[currentExerciseIdx];
+        const currentEx = exerciseDB[currentExName];
+        
+        if (!currentEx) return;
+        
+        const interval = setInterval(() => {
+            setAutoSecondsLeft(function(prevSec) {
+                var next = prevSec - 1;
+                
+                // 倒數最後 3 秒：滴滴聲
+                if (next === 3 || next === 2 || next === 1) {
+                    notify('tick');
+                }
+                
+                if (next > 0) {
+                    return next;
+                }
+                
+                // 倒數歸零，切換階段
+                setAutoMode(function(currentMode) {
+                    if (currentMode === 'exercising') {
+                        notify('finish');
+                        
+                        setCompletedSets(function(prevCompletedSets) {
+                            var newSets = prevCompletedSets.slice();
+                            var doneSec = parseSeconds(currentEx.defaultReps);
+                            newSets[currentExerciseIdx] = (newSets[currentExerciseIdx] || []).concat([doneSec]);
+                            
+                            setProgress(function(prevProgress) {
+                                var today = new Date().toISOString().split('T')[0];
+                                var newProgress = Object.assign({}, prevProgress);
+                                if (!newProgress[today]) newProgress[today] = {};
+                                newProgress[today] = Object.assign({}, newProgress[today]);
+                                newProgress[today][selectedDay] = newSets;
+                                safeStorage.set('fittrack_progress', newProgress);
+                                return newProgress;
+                            });
+                            
+                            // 檢查是否完成所有組數
+                            var totalSets = config.setsPerExercise;
+                            if (newSets[currentExerciseIdx].length >= totalSets) {
+                                setTimeout(function() { 
+                                    setAutoMode('done'); 
+                                    setAutoSecondsLeft(0);
+                                }, 0);
+                            } else {
+                                // 進入休息
+                                var restTime = Math.round(currentEx.defaultRest * config.restMultiplier);
+                                setTimeout(function() { setAutoSecondsLeft(restTime); }, 0);
+                            }
+                            
+                            return newSets;
+                        });
+                        
+                        return 'resting';
+                    } else if (currentMode === 'resting') {
+                        notify('rest_done');
+                        setTimeout(function() { setAutoSecondsLeft(3); }, 0);
+                        return 'preparing';
+                    } else if (currentMode === 'preparing') {
+                        var exerciseTime = parseSeconds(currentEx.defaultReps);
+                        setTimeout(function() { setAutoSecondsLeft(exerciseTime); }, 0);
+                        return 'exercising';
+                    }
+                    return currentMode;
+                });
+                
+                return prevSec;
+            });
+        }, 1000);
+        
+        return () => clearInterval(interval);
+    }, [autoMode, currentExerciseIdx, selectedDay, duration, customWorkouts]);
+    
+    // 啟動自動模式
+    const startAutoMode = () => {
+        var ex = exerciseDB[exercises[currentExerciseIdx]];
+        if (!ex) return;
+        var seconds = parseSeconds(ex.defaultReps);
+        setAutoSecondsLeft(seconds);
+        setAutoMode('exercising');
+    };
+    
+    // 暫停 / 繼續自動模式
+    const togglePauseAuto = () => {
+        if (autoMode === 'paused') {
+            // 繼續：根據儲存的狀態回去
+            // 簡化：暫停時就停在當前秒數，按繼續就繼續
+        }
+    };
+    
+    // 跳過當前階段
+    const skipCurrentPhase = () => {
+        setAutoSecondsLeft(1); // 強制觸發階段切換
+    };
+    
+    // 完全停止自動模式
+    const stopAutoMode = () => {
+        setAutoMode('idle');
+        setAutoSecondsLeft(0);
+    };
 
     const saveSettings = (newLevel) => {
         setDuration(newLevel);
-        safeStorage.set('fittrack_settings', { duration: newLevel });
+        var existing = safeStorage.get('fittrack_settings') || {};
+        existing.duration = newLevel;
+        safeStorage.set('fittrack_settings', existing);
         showToast();
+    };
+    
+    const saveSoundSetting = (enabled) => {
+        setSoundEnabled(enabled);
+        var existing = safeStorage.get('fittrack_settings') || {};
+        existing.soundEnabled = enabled;
+        safeStorage.set('fittrack_settings', existing);
+    };
+    
+    const saveVibrationSetting = (enabled) => {
+        setVibrationEnabled(enabled);
+        var existing = safeStorage.get('fittrack_settings') || {};
+        existing.vibrationEnabled = enabled;
+        safeStorage.set('fittrack_settings', existing);
+    };
+    
+    // 播放聲音
+    const playBeep = (frequency, duration) => {
+        if (!soundEnabled) return;
+        try {
+            var ctx = new (window.AudioContext || window.webkitAudioContext)();
+            var oscillator = ctx.createOscillator();
+            var gainNode = ctx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            oscillator.frequency.value = frequency || 800;
+            oscillator.type = 'sine';
+            gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + (duration || 0.2));
+            oscillator.start(ctx.currentTime);
+            oscillator.stop(ctx.currentTime + (duration || 0.2));
+        } catch (e) {}
+    };
+    
+    // 震動
+    const doVibrate = (pattern) => {
+        if (!vibrationEnabled) return;
+        if (navigator.vibrate) {
+            navigator.vibrate(pattern || 200);
+        }
+    };
+    
+    // 通知（聲音 + 震動）
+    const notify = (type) => {
+        if (type === 'finish') {
+            // 動作完成：高音雙響
+            playBeep(880, 0.15);
+            setTimeout(function() { playBeep(1100, 0.2); }, 200);
+            doVibrate([200, 100, 200]);
+        } else if (type === 'rest_done') {
+            // 休息結束：低音三響
+            playBeep(600, 0.15);
+            setTimeout(function() { playBeep(600, 0.15); }, 200);
+            setTimeout(function() { playBeep(900, 0.3); }, 400);
+            doVibrate([100, 100, 100, 100, 200]);
+        } else if (type === 'tick') {
+            // 倒數最後3秒
+            playBeep(440, 0.1);
+            doVibrate(50);
+        }
+    };
+    
+    // 判斷是否為秒數動作
+    const isTimedExercise = (reps) => {
+        if (!reps) return false;
+        return reps.toString().includes('秒');
+    };
+    
+    // 從次數字串中取得秒數（如 "30秒" → 30, "30秒/邊" → 30, "30-60秒" → 30）
+    const parseSeconds = (reps) => {
+        if (!reps) return 30;
+        var match = reps.toString().match(/(\d+)/);
+        return match ? parseInt(match[1]) : 30;
     };
 
     const saveCustomWorkout = (day, exercises) => {
@@ -607,6 +799,35 @@ function FitnessApp() {
                         ))
                     )
                 ),
+                React.createElement('div', null,
+                    React.createElement('p', { className: 'text-sm text-slate-400 mb-3 uppercase tracking-wider' }, '計時提醒'),
+                    React.createElement('div', { className: 'space-y-2' },
+                        React.createElement('button', {
+                            onClick: () => saveSoundSetting(!soundEnabled),
+                            className: 'w-full p-4 rounded-2xl border-2 text-left flex justify-between items-center ' + (soundEnabled ? 'bg-cyan-500/20 border-cyan-500 text-white' : 'bg-slate-800/50 border-slate-700 text-slate-400')
+                        },
+                            React.createElement('div', null,
+                                React.createElement('p', { className: 'font-bold' }, '🔔 聲音提醒'),
+                                React.createElement('p', { className: 'text-xs opacity-75' }, '動作/休息切換時提示音')
+                            ),
+                            React.createElement('div', { className: 'w-12 h-6 rounded-full ' + (soundEnabled ? 'bg-cyan-500' : 'bg-slate-700') + ' relative transition' },
+                                React.createElement('div', { className: 'w-5 h-5 bg-white rounded-full absolute top-0.5 transition ' + (soundEnabled ? 'right-0.5' : 'left-0.5') })
+                            )
+                        ),
+                        React.createElement('button', {
+                            onClick: () => saveVibrationSetting(!vibrationEnabled),
+                            className: 'w-full p-4 rounded-2xl border-2 text-left flex justify-between items-center ' + (vibrationEnabled ? 'bg-cyan-500/20 border-cyan-500 text-white' : 'bg-slate-800/50 border-slate-700 text-slate-400')
+                        },
+                            React.createElement('div', null,
+                                React.createElement('p', { className: 'font-bold' }, '📳 震動提醒'),
+                                React.createElement('p', { className: 'text-xs opacity-75' }, '動作/休息切換時手機震動')
+                            ),
+                            React.createElement('div', { className: 'w-12 h-6 rounded-full ' + (vibrationEnabled ? 'bg-cyan-500' : 'bg-slate-700') + ' relative transition' },
+                                React.createElement('div', { className: 'w-5 h-5 bg-white rounded-full absolute top-0.5 transition ' + (vibrationEnabled ? 'right-0.5' : 'left-0.5') })
+                            )
+                        )
+                    )
+                ),
                 React.createElement('div', { className: 'bg-blue-950/30 border border-blue-700/30 rounded-2xl p-4' },
                     React.createElement('p', { className: 'text-sm font-semibold text-blue-300 mb-2' }, '🔒 數據安全'),
                     React.createElement('p', { className: 'text-xs text-slate-300 leading-relaxed' }, '所有數據儲存在本機，不會上傳到任何伺服器。建議定期截圖進度頁面備份。')
@@ -869,20 +1090,83 @@ function FitnessApp() {
                         Array.from({ length: ex.sets }).map((_, idx) => {
                             const isDone = idx < setsForExercise.length;
                             const isNext = idx === setsForExercise.length && !isExerciseDone;
+                            const isTimedEx = isTimedExercise(ex.defaultReps);
                             return React.createElement('button', {
                                 key: idx,
-                                onClick: () => { if (isNext) setShowInputModal({ setNum: idx + 1, target: ex.defaultReps }); },
-                                disabled: !isNext,
+                                onClick: () => { 
+                                    if (isNext && !isTimedEx) {
+                                        setShowInputModal({ setNum: idx + 1, target: ex.defaultReps });
+                                    }
+                                },
+                                disabled: !isNext || isTimedEx,
                                 className: 'aspect-square rounded-2xl border-2 flex flex-col items-center justify-center ' + (isDone ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : isNext ? 'bg-cyan-500/10 border-cyan-500 text-cyan-300 animate-pulse' : 'bg-slate-800/30 border-slate-700 text-slate-600')
                             },
                                 isDone ? React.createElement(React.Fragment, null,
                                     React.createElement(Icon, { name: 'check', size: 20 }),
-                                    React.createElement('span', { className: 'text-xs font-bold mt-1' }, (setsForExercise[idx]) + '下')
+                                    React.createElement('span', { className: 'text-xs font-bold mt-1' }, (setsForExercise[idx]) + (isTimedEx ? '秒' : '下'))
                                 ) : React.createElement('span', { className: 'text-xs font-bold' }, '第' + (idx + 1) + '組')
                             );
                         })
                     ),
-                    !isExerciseDone && React.createElement('div', { className: 'bg-slate-800/50 rounded-2xl p-4 text-center' },
+                    
+                    // ============ 自動計時模式（秒數動作）============
+                    !isExerciseDone && isTimedExercise(ex.defaultReps) && (
+                        autoMode === 'idle' ? 
+                            // 待機狀態：顯示「開始」大按鈕
+                            React.createElement('div', { className: 'bg-slate-800/50 rounded-2xl p-6 text-center' },
+                                React.createElement('p', { className: 'text-sm text-slate-400 mb-4' }, '⚡ 自動計時模式'),
+                                React.createElement('p', { className: 'text-xs text-slate-500 mb-4' }, '按下開始後，動作和休息會自動切換'),
+                                React.createElement('button', {
+                                    onClick: startAutoMode,
+                                    className: 'px-8 py-4 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-2xl text-white font-bold text-lg shadow-xl shadow-emerald-500/30 flex items-center gap-2 mx-auto'
+                                }, React.createElement(Icon, { name: 'play', size: 24 }), '開始 ' + parseSeconds(ex.defaultReps) + ' 秒')
+                            )
+                        : autoMode === 'exercising' ?
+                            // 動作中：紅色背景 + 大數字
+                            React.createElement('div', { className: 'bg-gradient-to-br from-rose-600/30 to-rose-700/30 border-2 border-rose-500 rounded-2xl p-6 text-center' },
+                                React.createElement('p', { className: 'text-sm text-rose-300 mb-2 font-bold uppercase tracking-wider' }, '💪 動作中'),
+                                React.createElement('p', { className: 'text-7xl font-black font-mono text-white mb-3' }, autoSecondsLeft),
+                                React.createElement('p', { className: 'text-xs text-rose-300 mb-4' }, '第 ' + (setsForExercise.length + 1) + ' 組 / 共 ' + ex.sets + ' 組'),
+                                React.createElement('div', { className: 'flex gap-2 justify-center' },
+                                    React.createElement('button', {
+                                        onClick: skipCurrentPhase,
+                                        className: 'px-4 py-2 bg-slate-700 rounded-xl text-slate-300 font-semibold text-sm'
+                                    }, '跳過'),
+                                    React.createElement('button', {
+                                        onClick: stopAutoMode,
+                                        className: 'px-4 py-2 bg-slate-700 rounded-xl text-slate-300 font-semibold text-sm'
+                                    }, '停止')
+                                )
+                            )
+                        : autoMode === 'resting' ?
+                            // 休息中：藍色背景
+                            React.createElement('div', { className: 'bg-gradient-to-br from-blue-600/30 to-cyan-600/30 border-2 border-blue-500 rounded-2xl p-6 text-center' },
+                                React.createElement('p', { className: 'text-sm text-blue-300 mb-2 font-bold uppercase tracking-wider' }, '😌 休息中'),
+                                React.createElement('p', { className: 'text-7xl font-black font-mono text-white mb-3' }, autoSecondsLeft),
+                                React.createElement('p', { className: 'text-xs text-blue-300 mb-4' }, '下一組：第 ' + (setsForExercise.length + 1) + ' 組'),
+                                React.createElement('div', { className: 'flex gap-2 justify-center' },
+                                    React.createElement('button', {
+                                        onClick: skipCurrentPhase,
+                                        className: 'px-4 py-2 bg-slate-700 rounded-xl text-slate-300 font-semibold text-sm'
+                                    }, '跳過休息'),
+                                    React.createElement('button', {
+                                        onClick: stopAutoMode,
+                                        className: 'px-4 py-2 bg-slate-700 rounded-xl text-slate-300 font-semibold text-sm'
+                                    }, '停止')
+                                )
+                            )
+                        : autoMode === 'preparing' ?
+                            // 準備中：黃色背景 + 大倒數
+                            React.createElement('div', { className: 'bg-gradient-to-br from-amber-500/30 to-orange-500/30 border-2 border-amber-500 rounded-2xl p-6 text-center' },
+                                React.createElement('p', { className: 'text-sm text-amber-300 mb-2 font-bold uppercase tracking-wider' }, '⏰ 準備開始')
+,
+                                React.createElement('p', { className: 'text-8xl font-black font-mono text-white' }, autoSecondsLeft)
+                            )
+                        : null
+                    ),
+                    
+                    // ============ 手動模式（次數動作）============
+                    !isExerciseDone && !isTimedExercise(ex.defaultReps) && React.createElement('div', { className: 'bg-slate-800/50 rounded-2xl p-4 text-center' },
                         React.createElement('p', { className: 'text-xs text-slate-400 mb-2' }, '休息計時器（建議' + (ex.rest) + '秒）'),
                         React.createElement('p', { className: 'text-4xl font-black font-mono text-cyan-400 mb-3' }, formatTime(timerSeconds)),
                         React.createElement('div', { className: 'flex gap-2 justify-center' },
@@ -897,6 +1181,8 @@ function FitnessApp() {
                             }, '重置')
                         )
                     ),
+                    
+                    // ============ 完成狀態 ============
                     isExerciseDone && React.createElement('div', { className: 'bg-emerald-500/20 border border-emerald-500/30 rounded-2xl p-4 text-center' },
                         React.createElement(Icon, { name: 'check', size: 32, className: 'text-emerald-400 mx-auto mb-1' }),
                         React.createElement('p', { className: 'text-emerald-300 font-bold' }, '這個動作完成了！'),
@@ -922,6 +1208,8 @@ function FitnessApp() {
                                 setCurrentExerciseIdx(currentExerciseIdx - 1);
                                 setTimerSeconds(0);
                                 setIsTimerRunning(false);
+                                setAutoMode('idle');
+                                setAutoSecondsLeft(0);
                             }
                         },
                         disabled: currentExerciseIdx === 0,
@@ -936,6 +1224,8 @@ function FitnessApp() {
                                 setCurrentExerciseIdx(currentExerciseIdx + 1);
                                 setTimerSeconds(0);
                                 setIsTimerRunning(false);
+                                setAutoMode('idle');
+                                setAutoSecondsLeft(0);
                             }
                         },
                         className: 'flex-1 py-4 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl font-bold text-white shadow-2xl shadow-cyan-500/30 flex items-center justify-center gap-2'
