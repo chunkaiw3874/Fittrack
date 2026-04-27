@@ -52,9 +52,7 @@ body {
     border-top: 4px solid #06b6d4; border-radius: 50%;
     animation: spin 1s linear infinite;
 }
-.loading-text {
-    margin-top: 20px; color: #64748b; font-size: 14px;
-}
+.loading-text { margin-top: 20px; color: #64748b; font-size: 14px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 
@@ -67,7 +65,6 @@ body {
 <div id="root"></div>
 
 <script>
-// 卸載舊的 service worker（避免快取問題）
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(function(registrations) {
         for(var i = 0; i < registrations.length; i++) {
@@ -75,8 +72,6 @@ if ('serviceWorker' in navigator) {
         }
     });
 }
-
-// 清除舊的 cache
 if ('caches' in window) {
     caches.keys().then(function(names) {
         for(var i = 0; i < names.length; i++) {
@@ -85,20 +80,16 @@ if ('caches' in window) {
     });
 }
 
-// 隱藏載入畫面 - 多重保險
 function hideLoading() {
     var loading = document.getElementById('loading');
     if (loading) {
         loading.style.opacity = '0';
         setTimeout(function() { 
-            if (loading.parentNode) {
-                loading.parentNode.removeChild(loading);
-            }
+            if (loading.parentNode) loading.parentNode.removeChild(loading);
         }, 300);
     }
 }
 
-// 安全機制：5 秒後強制隱藏 loading
 setTimeout(function() {
     var loading = document.getElementById('loading');
     if (loading) {
@@ -107,17 +98,12 @@ setTimeout(function() {
     }
 }, 3000);
 
-// 終極保險：10 秒後一定隱藏
-setTimeout(function() {
-    hideLoading();
-}, 10000);
+setTimeout(hideLoading, 10000);
 
-// React 應用啟動後隱藏 loading
 window.addEventListener('load', function() {
     setTimeout(hideLoading, 800);
 });
 
-// 檢測 React 渲染完成
 var checkInterval = setInterval(function() {
     var root = document.getElementById('root');
     if (root && root.children.length > 0) {
@@ -218,43 +204,1242 @@ const muscleColors = {
 // 動作資料庫
 // ============================================
 const exerciseDB = {
-    '啞鈴胸推': { englishName: 'dumbbell bench press', primary: ['胸'], secondary: ['肩', '手臂'], primaryDetail: '胸大肌', secondaryDetail: '三角肌前束、三頭肌', equipment: ['啞鈴'], category: 'push', region: 'upper', difficulty: 2, defaultReps: '10-12', defaultWeight: '12kg', defaultRest: 60, tips: ['肘部45-60°角', '啞鈴在乳頭高度', '核心收緊', '控制下降速度（2秒下，1秒推）', '推起時呼氣'], safety: '避免肘部向外張開太寬（>90°）' },
-    '啞鈴上斜推舉': { englishName: 'dumbbell incline press', primary: ['胸'], secondary: ['肩', '手臂'], primaryDetail: '上胸（鎖骨部）', secondaryDetail: '三角肌前束、三頭肌', equipment: ['啞鈴'], category: 'push', region: 'upper', difficulty: 2, defaultReps: '10-12', defaultWeight: '10kg', defaultRest: 60, tips: ['上身躺在30-45°斜面（可用沙發靠背）', '啞鈴推向頭頂方向', '上胸感受擠壓', '控制下降', '推起時呼氣'], safety: '避免太陡（>60°）會變成肩推' },
-    '伏地挺身': { englishName: 'pushup proper form', primary: ['胸'], secondary: ['肩', '手臂', '核心'], primaryDetail: '胸大肌', secondaryDetail: '三角肌前束、三頭肌、核心', equipment: ['自重'], category: 'push', region: 'upper', difficulty: 2, defaultReps: '8-15', defaultWeight: '自重', defaultRest: 45, tips: ['身體保持一直線', '肘部接近身體', '下降至胸部接近地面', '核心全程收緊', '推起時呼氣'], safety: '避免臀部下沉或過度上抬' },
-    '鑽石伏地挺身': { englishName: 'diamond push up', primary: ['手臂'], secondary: ['胸', '肩'], primaryDetail: '三頭肌', secondaryDetail: '胸大肌內側、三角肌前束', equipment: ['自重'], category: 'push', region: 'upper', difficulty: 3, defaultReps: '6-10', defaultWeight: '自重', defaultRest: 60, tips: ['雙手成菱形（食指拇指相觸）', '手在胸口正下方', '肘部緊貼身體', '緩慢下降', '推起時呼氣'], safety: '初學者可改用膝蓋著地版本' },
-    '啞鈴飛鳥': { englishName: 'dumbbell chest fly', primary: ['胸'], secondary: ['肩'], primaryDetail: '胸大肌（外側）', secondaryDetail: '三角肌前束', equipment: ['啞鈴'], category: 'push', region: 'upper', difficulty: 2, defaultReps: '10-12', defaultWeight: '8kg', defaultRest: 60, tips: ['平躺，啞鈴舉於胸口正上方', '肘部微彎並固定', '雙臂張開如擁抱', '感受胸肌伸展', '收回時呼氣'], safety: '避免肘部完全打直（會傷到肩關節）' },
-    '啞鈴划船': { englishName: 'dumbbell row', primary: ['背'], secondary: ['手臂', '肩'], primaryDetail: '闊背肌、菱形肌', secondaryDetail: '二頭肌、後三角肌', equipment: ['啞鈴'], category: 'pull', region: 'upper', difficulty: 2, defaultReps: '10-12', defaultWeight: '12kg', defaultRest: 60, tips: ['身體前傾45°', '啞鈴貼近身體上升', '肩胛骨後縮', '感受背肌收縮', '上升時呼氣'], safety: '避免過度轉身或圓背' },
-    '啞鈴單臂划船': { englishName: 'one arm dumbbell row', primary: ['背'], secondary: ['手臂', '核心'], primaryDetail: '闊背肌、菱形肌', secondaryDetail: '二頭肌、核心', equipment: ['啞鈴'], category: 'pull', region: 'upper', difficulty: 2, defaultReps: '10-12', defaultWeight: '15kg', defaultRest: 60, tips: ['一手撐椅子/床支撐', '另一手拿啞鈴', '啞鈴拉到腰側', '肩胛骨後縮', '兩邊各做一組'], safety: '保持背部直線，避免脊椎旋轉' },
-    '啞鈴反向飛鳥': { englishName: 'reverse dumbbell fly', primary: ['背'], secondary: ['肩'], primaryDetail: '中背肌、菱形肌', secondaryDetail: '後三角肌', equipment: ['啞鈴'], category: 'pull', region: 'upper', difficulty: 2, defaultReps: '12-15', defaultWeight: '8kg', defaultRest: 45, tips: ['身體前傾45°', '啞鈴自然下垂', '肘部微彎', '雙臂向兩側展開', '感受肩胛骨夾緊'], safety: '使用較輕重量，重點是控制' },
-    '啞鈴硬舉': { englishName: 'dumbbell deadlift', primary: ['背', '腿', '臀'], secondary: ['核心'], primaryDetail: '腿後肌群、臀大肌、下背', secondaryDetail: '核心、上背', equipment: ['啞鈴'], category: 'pull', region: 'full', difficulty: 3, defaultReps: '10-12', defaultWeight: '15kg', defaultRest: 75, tips: ['背部保持直線', '啞鈴貼著腿', '臀部高於膝蓋（起始）', '推動腳跟、夾臀推起', '舉起時呼氣'], safety: '⚠️ 絕對避免圓背！這是最容易傷腰的動作' },
-    '啞鈴肩推': { englishName: 'dumbbell shoulder press', primary: ['肩'], secondary: ['手臂', '核心'], primaryDetail: '三角肌（全部）', secondaryDetail: '三頭肌、核心穩定', equipment: ['啞鈴'], category: 'push', region: 'upper', difficulty: 2, defaultReps: '10-12', defaultWeight: '10kg', defaultRest: 60, tips: ['啞鈴在肩膀高度', '核心收緊', '垂直推起', '頂部停頓1秒', '推起時呼氣'], safety: '避免拱背或頭向前突出' },
-    '啞鈴側平舉': { englishName: 'dumbbell lateral raise', primary: ['肩'], secondary: [], primaryDetail: '三角肌中束', secondaryDetail: '上斜方肌（次要）', equipment: ['啞鈴'], category: 'push', region: 'upper', difficulty: 1, defaultReps: '12-15', defaultWeight: '5kg', defaultRest: 45, tips: ['輕重量、慢動作', '啞鈴舉至與肩同高', '小指略高於拇指', '控制下降', '不要靠慣性'], safety: '太重會用斜方肌代償' },
-    '啞鈴前平舉': { englishName: 'dumbbell front raise', primary: ['肩'], secondary: [], primaryDetail: '三角肌前束', secondaryDetail: '', equipment: ['啞鈴'], category: 'push', region: 'upper', difficulty: 1, defaultReps: '12-15', defaultWeight: '5kg', defaultRest: 45, tips: ['啞鈴向前舉至肩高', '輪流舉左右手', '保持身體穩定', '緩慢下降'], safety: '避免擺動身體借力' },
-    '啞鈴二頭彎舉': { englishName: 'dumbbell bicep curl', primary: ['手臂'], secondary: [], primaryDetail: '二頭肌', secondaryDetail: '', equipment: ['啞鈴'], category: 'pull', region: 'upper', difficulty: 1, defaultReps: '10-12', defaultWeight: '8kg', defaultRest: 45, tips: ['手肘貼近身體', '掌心朝上', '緩慢上舉', '頂部停頓擠壓', '緩慢下放'], safety: '避免擺動身體' },
-    '啞鈴錘式彎舉': { englishName: 'hammer curl', primary: ['手臂'], secondary: [], primaryDetail: '二頭肌、肱橈肌', secondaryDetail: '前臂', equipment: ['啞鈴'], category: 'pull', region: 'upper', difficulty: 1, defaultReps: '10-12', defaultWeight: '8kg', defaultRest: 45, tips: ['掌心朝向身體', '像握錘子一樣', '手肘固定', '上下控制'], safety: '避免擺動或彎腰' },
-    '啞鈴三頭伸展': { englishName: 'dumbbell tricep extension', primary: ['手臂'], secondary: [], primaryDetail: '三頭肌', secondaryDetail: '', equipment: ['啞鈴'], category: 'push', region: 'upper', difficulty: 2, defaultReps: '10-12', defaultWeight: '8kg', defaultRest: 45, tips: ['雙手握一個啞鈴舉過頭頂', '手肘固定指向天花板', '只動前臂', '下放至腦後', '推起時呼氣'], safety: '避免手肘外開，會給肩膀壓力' },
-    '啞鈴深蹲': { englishName: 'dumbbell squat', primary: ['腿', '臀'], secondary: ['核心'], primaryDetail: '股四頭肌、臀大肌', secondaryDetail: '腿後肌、核心', equipment: ['啞鈴'], category: 'legs', region: 'lower', difficulty: 2, defaultReps: '12-15', defaultWeight: '15kg', defaultRest: 60, tips: ['膝蓋對齐腳尖方向', '胸口挺起', '重心在腳跟', '深度膝蓋≥90°', '推起時呼氣'], safety: '避免膝蓋內扣' },
-    '啞鈴酒杯式深蹲': { englishName: 'goblet squat', primary: ['腿', '臀'], secondary: ['核心'], primaryDetail: '股四頭肌、臀大肌', secondaryDetail: '上背、核心', equipment: ['啞鈴'], category: 'legs', region: 'lower', difficulty: 1, defaultReps: '12-15', defaultWeight: '15kg', defaultRest: 60, tips: ['雙手捧著一個啞鈴在胸前', '像握酒杯一樣', '深蹲到大腿平行地面', '保持上身直立', '推起時呼氣'], safety: '初學者最佳深蹲變化動作' },
-    '啞鈴弓步蹲': { englishName: 'dumbbell lunge', primary: ['腿', '臀'], secondary: ['核心'], primaryDetail: '股四頭肌、臀大肌', secondaryDetail: '腿後肌、核心穩定', equipment: ['啞鈴'], category: 'legs', region: 'lower', difficulty: 2, defaultReps: '10/邊', defaultWeight: '10kg', defaultRest: 60, tips: ['前後腳分開一大步', '前腿膝蓋彎至90°', '後膝接近地面', '上身保持直立', '兩邊輪流'], safety: '前膝不要超過腳尖太多' },
-    '啞鈴保加利亞分腿蹲': { englishName: 'bulgarian split squat', primary: ['腿', '臀'], secondary: ['核心'], primaryDetail: '股四頭肌、臀大肌', secondaryDetail: '核心穩定', equipment: ['啞鈴'], category: 'legs', region: 'lower', difficulty: 3, defaultReps: '10/邊', defaultWeight: '12kg', defaultRest: 60, tips: ['後腳放椅子或床上', '前腿膝蓋彎至90°', '身體保持直立', '感受前腿股四頭肌', '兩邊各做一組'], safety: '需要平衡感，可扶牆練習' },
-    '啞鈴側弓步': { englishName: 'lateral lunge', primary: ['腿', '臀'], secondary: [], primaryDetail: '股四頭肌、內收肌', secondaryDetail: '臀中肌', equipment: ['啞鈴'], category: 'legs', region: 'lower', difficulty: 2, defaultReps: '10/邊', defaultWeight: '10kg', defaultRest: 45, tips: ['雙手持啞鈴', '一邊大步側跨', '蹲下時腳尖朝前', '伸直腿打直', '感受內側大腿伸展'], safety: '熱身充分，避免拉傷內收肌' },
-    '啞鈴羅馬尼亞硬舉': { englishName: 'romanian deadlift', primary: ['腿', '臀'], secondary: ['背'], primaryDetail: '腿後肌群、臀大肌', secondaryDetail: '下背', equipment: ['啞鈴'], category: 'legs', region: 'lower', difficulty: 2, defaultReps: '10-12', defaultWeight: '15kg', defaultRest: 60, tips: ['膝蓋微彎並固定', '臀部往後推', '啞鈴貼著腿往下', '感受腿後拉伸', '夾臀起身'], safety: '保持背部直線，腰椎自然弧度' },
-    '臀橋': { englishName: 'glute bridge', primary: ['臀'], secondary: ['腿', '核心'], primaryDetail: '臀大肌', secondaryDetail: '腿後肌、核心', equipment: ['自重'], category: 'legs', region: 'lower', difficulty: 1, defaultReps: '15-20', defaultWeight: '自重', defaultRest: 45, tips: ['肩膀平貼地面', '膝蓋彎90°', '夾臀向上推', '頂部停頓2秒', '緩慢下降'], safety: '用臀部發力，不是腰部' },
-    '單腿臀橋': { englishName: 'single leg glute bridge', primary: ['臀'], secondary: ['腿', '核心'], primaryDetail: '臀大肌', secondaryDetail: '腿後肌、核心穩定', equipment: ['自重'], category: 'legs', region: 'lower', difficulty: 2, defaultReps: '10/邊', defaultWeight: '自重', defaultRest: 45, tips: ['一腳抬起', '另一腳推地', '單側臀部發力', '保持骨盆水平', '兩邊輪流'], safety: '比雙腿版本難，先掌握雙腿版' },
-    '小腿提踵': { englishName: 'calf raise', primary: ['腿'], secondary: [], primaryDetail: '小腿肌（腓腸肌）', secondaryDetail: '', equipment: ['啞鈴'], category: 'legs', region: 'lower', difficulty: 1, defaultReps: '15-20', defaultWeight: '10kg', defaultRest: 30, tips: ['可雙手持啞鈴', '腳尖站在台階上（腳跟懸空）', '緩慢提起腳跟', '頂部停頓擠壓', '完整下降伸展'], safety: '腳跟下降時不要彈起' },
-    '平板支撐': { englishName: 'plank proper form', primary: ['核心'], secondary: ['肩'], primaryDetail: '腹直肌、腹橫肌', secondaryDetail: '肩、臀', equipment: ['瑜伽墊'], category: 'core', region: 'core', difficulty: 1, defaultReps: '30-60秒', defaultWeight: '自重', defaultRest: 30, tips: ['身體保持一直線', '肘部在肩膀正下方', '核心收緊', '正常呼吸', '臀部不要下沉或翹起'], safety: '質量比時間重要' },
-    '側平板': { englishName: 'side plank', primary: ['核心'], secondary: ['肩'], primaryDetail: '腹斜肌、腹橫肌', secondaryDetail: '肩部穩定', equipment: ['瑜伽墊'], category: 'core', region: 'core', difficulty: 2, defaultReps: '30秒/邊', defaultWeight: '自重', defaultRest: 30, tips: ['側躺，用一隻肘支撐', '身體成直線', '臀部抬起', '頂部腿可疊在底腿上', '兩邊各做'], safety: '感覺肩痛應停止' },
-    '捲腹': { englishName: 'crunch proper form', primary: ['核心'], secondary: [], primaryDetail: '腹直肌（上腹）', secondaryDetail: '', equipment: ['瑜伽墊'], category: 'core', region: 'core', difficulty: 1, defaultReps: '15-20', defaultWeight: '自重', defaultRest: 30, tips: ['平躺屈膝', '雙手放胸前或耳側', '肩膀離地30°', '感受腹肌收縮', '不是用脖子拉'], safety: '不要用力拉脖子，避免頸椎傷' },
-    '俄羅斯轉體': { englishName: 'russian twist', primary: ['核心'], secondary: [], primaryDetail: '腹斜肌', secondaryDetail: '腹直肌', equipment: ['啞鈴'], category: 'core', region: 'core', difficulty: 2, defaultReps: '20（10/邊）', defaultWeight: '5kg', defaultRest: 30, tips: ['坐姿，膝蓋彎曲', '上身後傾45°', '雙手捧啞鈴', '左右轉動觸地', '腳可離地增加難度'], safety: '保持背部直線' },
-    '死蟲式': { englishName: 'dead bug exercise', primary: ['核心'], secondary: [], primaryDetail: '腹橫肌、核心穩定', secondaryDetail: '', equipment: ['瑜伽墊'], category: 'core', region: 'core', difficulty: 1, defaultReps: '10/邊', defaultWeight: '自重', defaultRest: 30, tips: ['平躺，雙腳90°抬起', '雙手向上伸直', '對角線伸展（左手+右腳）', '腰貼地面', '緩慢控制'], safety: '腰不能離開地面' },
-    '鳥狗式': { englishName: 'bird dog exercise', primary: ['核心'], secondary: ['背', '臀'], primaryDetail: '核心穩定、下背', secondaryDetail: '臀肌', equipment: ['瑜伽墊'], category: 'core', region: 'core', difficulty: 1, defaultReps: '10/邊', defaultWeight: '自重', defaultRest: 30, tips: ['四足跪姿', '對角線伸展（左手+右腳）', '保持平衡', '頂部停頓2秒', '緩慢回到起始'], safety: '保持身體穩定，不要扭轉' },
-    '啞鈴抓舉': { englishName: 'dumbbell snatch', primary: ['全身'], secondary: ['肩', '腿'], primaryDetail: '全身爆發力', secondaryDetail: '肩、腿、背', equipment: ['啞鈴'], category: 'full_body', region: 'full', difficulty: 3, defaultReps: '8-10', defaultWeight: '10kg', defaultRest: 60, tips: ['啞鈴從膝蓋位置開始', '快速爆發力上舉', '完整伸展肘部', '控制下降', '訓練全身協調'], safety: '初學者應先學會徒手版本' },
-    '啞鈴推舉深蹲': { englishName: 'dumbbell thruster', primary: ['全身'], secondary: ['腿', '肩'], primaryDetail: '腿+肩（複合動作）', secondaryDetail: '核心', equipment: ['啞鈴'], category: 'full_body', region: 'full', difficulty: 2, defaultReps: '10-12', defaultWeight: '10kg', defaultRest: 60, tips: ['啞鈴在肩高', '深蹲下', '推起並推舉啞鈴過頭', '一個流暢動作', '推起時呼氣'], safety: '初學重量輕，重點動作流暢' },
-    '波比跳': { englishName: 'burpee', primary: ['全身'], secondary: [], primaryDetail: '全身有氧+力量', secondaryDetail: '', equipment: ['自重'], category: 'full_body', region: 'full', difficulty: 3, defaultReps: '10', defaultWeight: '自重', defaultRest: 60, tips: ['深蹲', '雙手撐地', '雙腳向後跳成伏地挺身位置', '可加一下伏地挺身', '收回腳，跳起拍手'], safety: '高強度，注意呼吸節奏' },
-    '開合跳': { englishName: 'jumping jacks', primary: ['全身'], secondary: [], primaryDetail: '心肺', secondaryDetail: '', equipment: ['自重'], category: 'full_body', region: 'full', difficulty: 1, defaultReps: '30秒', defaultWeight: '自重', defaultRest: 30, tips: ['雙腳並攏，雙手在身體兩側', '同時跳開雙腳並舉雙手過頭', '回到起始位置', '保持節奏'], safety: '注意膝蓋落地緩衝' },
-    '跳躍深蹲': { englishName: 'jump squat', primary: ['腿'], secondary: ['全身'], primaryDetail: '股四頭肌、臀大肌（爆發）', secondaryDetail: '心肺', equipment: ['自重'], category: 'full_body', region: 'full', difficulty: 2, defaultReps: '10-12', defaultWeight: '自重', defaultRest: 45, tips: ['深蹲下', '爆發力跳起', '輕緩落地', '立即下一個', '注意膝蓋緩衝'], safety: '膝蓋有問題者避免' },
-    '高抬腿': { englishName: 'high knees', primary: ['全身'], secondary: ['核心'], primaryDetail: '心肺、核心', secondaryDetail: '腿', equipment: ['自重'], category: 'full_body', region: 'full', difficulty: 1, defaultReps: '30秒', defaultWeight: '自重', defaultRest: 30, tips: ['原地跑步', '膝蓋盡量抬到腰高', '雙手自然擺動', '快速節奏', '保持挺胸'], safety: '強度自我調整' },
-    '登山者': { englishName: 'mountain climbers', primary: ['核心'], secondary: ['全身'], primaryDetail: '核心、心肺', secondaryDetail: '肩、腿', equipment: ['瑜伽墊'], category: 'full_body', region: 'full', difficulty: 2, defaultReps: '30秒', defaultWeight: '自重', defaultRest: 30, tips: ['伏地挺身位置', '輪流抬膝至胸口', '快速節奏', '臀部不要翹起', '核心收緊'], safety: '保持身體一直線' },
+    '啞鈴胸推': {
+        englishName: 'dumbbell bench press floor',
+        primary: ['胸'],
+        secondary: ['手臂', '肩'],
+        equipment: ['啞鈴', '瑜伽墊'],
+        difficulty: 2,
+        defaultReps: '10-12下',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['平躺在瑜伽墊上，雙腳屈膝踩地', '雙手持啞鈴，手肘貼地約成 45 度角', '推起時呼氣，啞鈴向上推至胸口正上方', '下放時吸氣，控制速度，手肘下放至略低於肩'],
+        notes: ['不要鎖死手肘', '下放速度比推起慢一倍', '腰不要拱起']
+    },
+    '啞鈴上斜推舉': {
+        englishName: 'incline dumbbell press floor',
+        primary: ['胸'],
+        secondary: ['肩', '手臂'],
+        equipment: ['啞鈴', '瑜伽墊'],
+        difficulty: 2,
+        defaultReps: '8-12下',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['靠牆坐姿，身體與牆面成 30-45 度角', '雙手持啞鈴於肩膀兩側', '向上推起，啞鈴匯集於正上方', '緩慢下放至原位'],
+        notes: ['上半身保持斜角度', '核心收緊穩定軀幹', '不要聳肩']
+    },
+    '伏地挺身': {
+        englishName: 'pushup proper form',
+        primary: ['胸'],
+        secondary: ['手臂', '肩', '核心'],
+        equipment: ['徒手'],
+        difficulty: 2,
+        defaultReps: '8-15下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['雙手撐地略寬於肩，雙腳併攏', '身體呈一直線，從頭到腳跟', '下降至胸部離地約一個拳頭', '推起時呼氣，回到起始位置'],
+        notes: ['臀部不要翹高或塌下', '手肘約 45 度角', '頸椎自然位置']
+    },
+    '寬距伏地挺身': {
+        englishName: 'wide pushup',
+        primary: ['胸'],
+        secondary: ['肩'],
+        equipment: ['徒手'],
+        difficulty: 2,
+        defaultReps: '8-12下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['雙手撐地，距離比肩寬 1.5 倍', '下降時手肘外展', '感受胸部被拉伸', '推起回到起始位置'],
+        notes: ['不要過寬以免肩膀受傷', '核心保持收緊', '動作緩慢控制']
+    },
+    '鑽石伏地挺身': {
+        englishName: 'diamond pushup',
+        primary: ['手臂'],
+        secondary: ['胸', '肩'],
+        equipment: ['徒手'],
+        difficulty: 3,
+        defaultReps: '5-12下',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['雙手在胸前相觸，拇指食指形成菱形', '下降時手肘貼緊身體', '胸部碰觸到雙手位置', '推起回到起始位置'],
+        notes: ['進階動作，先掌握標準伏地挺身', '手肘容易過度伸直', '感到肘關節不適立刻停止']
+    },
+    '腳抬高伏地挺身': {
+        englishName: 'decline pushup',
+        primary: ['胸'],
+        secondary: ['肩', '手臂'],
+        equipment: ['徒手'],
+        difficulty: 3,
+        defaultReps: '5-12下',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['雙腳放在床、樓梯或穩固平面上', '雙手撐地，身體成一直線', '下降至胸部離地', '推起回到起始位置'],
+        notes: ['抬腳高度約 30-50 公分', '腰部不要塌下', '核心持續收緊']
+    },
+    '跪姿伏地挺身': {
+        englishName: 'knee pushup',
+        primary: ['胸'],
+        secondary: ['手臂', '肩'],
+        equipment: ['瑜伽墊'],
+        difficulty: 1,
+        defaultReps: '10-15下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['雙膝跪地，雙手撐於肩寬', '從膝蓋到頭部成一直線', '下降至胸部離地', '推起回到起始位置'],
+        notes: ['初學者首選', '不要塌腰', '逐步進階到標準伏地挺身']
+    },
+    '啞鈴飛鳥': {
+        englishName: 'dumbbell chest fly floor',
+        primary: ['胸'],
+        secondary: [],
+        equipment: ['啞鈴', '瑜伽墊'],
+        difficulty: 2,
+        defaultReps: '10-12下',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['平躺在瑜伽墊上，雙手持啞鈴向上伸直', '手肘微彎不變，雙手向兩側緩緩打開', '至感受胸部拉伸時停止', '收縮胸肌將啞鈴匯集回起始位置'],
+        notes: ['手肘保持微彎', '使用較輕的重量', '感受胸部用力而非手臂']
+    },
+    '阻力帶夾胸': {
+        englishName: 'resistance band chest fly',
+        primary: ['胸'],
+        secondary: ['肩'],
+        equipment: ['阻力帶'],
+        difficulty: 2,
+        defaultReps: '12-15下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['阻力帶繞過背後，雙手握住兩端', '雙臂張開向兩側', '雙臂在胸前匯集', '緩慢回到起始位置'],
+        notes: ['阻力帶位置要固定', '動作要慢', '感受胸肌用力']
+    },
+    '阻力帶推胸': {
+        englishName: 'resistance band chest press',
+        primary: ['胸'],
+        secondary: ['手臂', '肩'],
+        equipment: ['阻力帶'],
+        difficulty: 2,
+        defaultReps: '12-15下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['阻力帶繞過背後，雙手握住兩端在胸前', '雙臂向前推出', '至完全伸直但不鎖死手肘', '緩慢回到起始位置'],
+        notes: ['核心收緊保持穩定', '不要鎖死手肘', '兩側用力均勻']
+    },
+    '蜘蛛人伏地挺身': {
+        englishName: 'spiderman pushup',
+        primary: ['胸'],
+        secondary: ['核心', '手臂'],
+        equipment: ['徒手'],
+        difficulty: 3,
+        defaultReps: '6-10下/邊',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['伏地挺身起始姿勢', '下降同時將右膝拉向右肘', '推起時將腿放回', '下一下換邊'],
+        notes: ['核心要持續收緊', '進階動作', '可先做標準伏地挺身']
+    },
+    '單臂伏地挺身': {
+        englishName: 'one arm pushup',
+        primary: ['胸'],
+        secondary: ['核心', '手臂', '肩'],
+        equipment: ['徒手'],
+        difficulty: 3,
+        defaultReps: '3-8下/邊',
+        defaultRest: 90,
+        sets: 3,
+        howTo: ['雙腳張開比肩寬', '一手撐地，另一手放於背後', '緩慢下降', '推起回到起始位置'],
+        notes: ['高難度動作，需有基礎力量', '核心穩定最重要', '初學者勿嘗試']
+    },
+    '啞鈴划船': {
+        englishName: 'dumbbell row bent over',
+        primary: ['背'],
+        secondary: ['手臂'],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '10-12下',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['雙腳與肩同寬站立，膝蓋微彎', '上身前傾約 45 度，背部打直', '雙手持啞鈴自然下垂', '將啞鈴拉向腰部兩側，感受背部用力'],
+        notes: ['背部全程保持平直', '不要拱腰', '頸部與背成一直線']
+    },
+    '啞鈴單臂划船': {
+        englishName: 'one arm dumbbell row',
+        primary: ['背'],
+        secondary: ['手臂', '核心'],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '10-12下/邊',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['單腳跪地（如右手做動作則左膝跪地）', '左手撐在床或地上支撐，背部打平', '右手持啞鈴', '將啞鈴拉向腰部，肘部緊貼身體'],
+        notes: ['不要扭轉軀幹', '背部保持平直', '專注背肌用力']
+    },
+    '啞鈴反向飛鳥': {
+        englishName: 'reverse dumbbell fly',
+        primary: ['背'],
+        secondary: ['肩'],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '12-15下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['上身前傾約 45 度，背部打直', '雙手持啞鈴於身體前方', '雙臂向兩側打開，肩胛骨夾緊', '緩慢回到起始位置'],
+        notes: ['用較輕的重量', '感受上背部用力', '不要聳肩']
+    },
+    '啞鈴硬舉': {
+        englishName: 'romanian deadlift dumbbell',
+        primary: ['背', '臀'],
+        secondary: ['腿'],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '8-12下',
+        defaultRest: 75,
+        sets: 3,
+        howTo: ['雙腳與肩同寬，雙手持啞鈴於身前', '臀部向後推，膝蓋微彎', '保持背部平直，啞鈴沿著大腿前側下滑', '感受腿後側拉伸後挺身回到起始位置'],
+        notes: ['背部全程保持平直', '不是彎腰，是髖關節折疊', '感到腰痛立刻停止']
+    },
+    '阻力帶划船': {
+        englishName: 'resistance band row',
+        primary: ['背'],
+        secondary: ['手臂'],
+        equipment: ['阻力帶'],
+        difficulty: 2,
+        defaultReps: '12-15下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['阻力帶固定於門把或樹幹（與胸同高）', '坐在地上或站立，雙手握住阻力帶兩端', '將阻力帶拉向腹部，肘部緊貼身體', '緩慢回到起始位置'],
+        notes: ['挺胸，肩胛骨夾緊', '不要拱背', '感受背部用力']
+    },
+    '阻力帶下拉': {
+        englishName: 'resistance band lat pulldown',
+        primary: ['背'],
+        secondary: ['手臂'],
+        equipment: ['阻力帶'],
+        difficulty: 2,
+        defaultReps: '10-12下',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['阻力帶固定於高處（門框上方）', '坐姿或跪姿，雙手握住阻力帶', '將阻力帶向下拉至胸口高度', '感受闊背肌用力'],
+        notes: ['挺胸保持背部弓起', '不要靠手臂發力', '專注於背部下緣']
+    },
+    '超人式': {
+        englishName: 'superman exercise',
+        primary: ['背'],
+        secondary: ['臀'],
+        equipment: ['瑜伽墊'],
+        difficulty: 1,
+        defaultReps: '12-15下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['俯臥在瑜伽墊上，雙臂前伸', '同時抬起雙手、雙腿和胸部', '在最高點停留 1-2 秒', '緩慢放下'],
+        notes: ['頸椎保持中立', '抬到能力範圍即可', '不要猛抬猛放']
+    },
+    '反向划船（地板）': {
+        englishName: 'inverted row floor',
+        primary: ['背'],
+        secondary: ['手臂'],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '10-15下',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['兩個啞鈴放在地上，距離與肩同寬', '俯臥撐姿勢，雙手握住啞鈴', '將身體拉起，胸部朝向啞鈴', '緩慢下降至原位'],
+        notes: ['核心收緊穩定軀幹', '肩胛骨夾緊', '需要可六角型的啞鈴']
+    },
+    '啞鈴 W 字': {
+        englishName: 'dumbbell W raise',
+        primary: ['背'],
+        secondary: ['肩'],
+        equipment: ['啞鈴', '瑜伽墊'],
+        difficulty: 2,
+        defaultReps: '12-15下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['俯臥在瑜伽墊上，雙手持輕啞鈴', '手肘彎曲，形成 W 字型', '抬起雙臂，肩胛骨夾緊', '保持 1 秒後放下'],
+        notes: ['用很輕的重量（1-3kg）', '專注上背肌肉收縮', '不要猛抬']
+    },
+    '啞鈴聳肩': {
+        englishName: 'dumbbell shrug',
+        primary: ['背'],
+        secondary: [],
+        equipment: ['啞鈴'],
+        difficulty: 1,
+        defaultReps: '12-15下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['雙腳與肩同寬站立，雙手持啞鈴自然下垂', '雙肩向上聳起，朝耳朵方向', '在最高點停留 1 秒', '緩慢放下'],
+        notes: ['不要前後旋轉肩膀', '純上下動作', '感受斜方肌用力']
+    },
+    'YTW 三式': {
+        englishName: 'YTW shoulder exercise',
+        primary: ['背'],
+        secondary: ['肩'],
+        equipment: ['啞鈴', '瑜伽墊'],
+        difficulty: 2,
+        defaultReps: '8下/字母',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['俯臥姿勢，雙手持輕啞鈴', 'Y 字：雙臂前伸成 Y 字抬起', 'T 字：雙臂側伸成 T 字抬起', 'W 字：手肘彎曲成 W 字抬起'],
+        notes: ['用 1-2kg 啞鈴即可', '每個字母都要有意識停留', '上背用力主導']
+    },
+    '阻力帶 Pull Apart': {
+        englishName: 'resistance band pull apart',
+        primary: ['背'],
+        secondary: ['肩'],
+        equipment: ['阻力帶'],
+        difficulty: 1,
+        defaultReps: '15-20下',
+        defaultRest: 30,
+        sets: 3,
+        howTo: ['雙手持阻力帶於胸前', '雙臂打直', '雙臂向兩側打開，將阻力帶拉開', '緩慢回到起始位置'],
+        notes: ['熱身的好動作', '肩胛骨主導動作', '輕鬆操作']
+    },
+    '貓牛伸展': {
+        englishName: 'cat cow stretch',
+        primary: ['背'],
+        secondary: ['核心'],
+        equipment: ['瑜伽墊'],
+        difficulty: 1,
+        defaultReps: '10-15下',
+        defaultRest: 30,
+        sets: 2,
+        howTo: ['四足跪姿，手在肩下，膝在髖下', '貓式：拱背，下巴貼胸', '牛式：腰背下凹，抬頭', '緩慢交替'],
+        notes: ['動作要慢', '搭配呼吸', '感到背部受傷立刻停止']
+    },
+    '阻力帶 Face Pull': {
+        englishName: 'resistance band face pull',
+        primary: ['背'],
+        secondary: ['肩'],
+        equipment: ['阻力帶'],
+        difficulty: 2,
+        defaultReps: '12-15下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['阻力帶固定於與肩同高', '雙手握住阻力帶兩端', '向後拉，雙手分開朝臉部兩側', '感受上背和後三角肌用力'],
+        notes: ['對改善圓肩很有幫助', '不要聳肩', '日常可多做']
+    },
+    '門口拉': {
+        englishName: 'doorway row',
+        primary: ['背'],
+        secondary: ['手臂'],
+        equipment: ['徒手'],
+        difficulty: 2,
+        defaultReps: '10-15下',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['站立面對堅固門框', '雙手抓住門框兩側', '腳伸前，身體向後傾斜', '用背部力量將身體拉向門框'],
+        notes: ['確保門框堅固', '雙腳站穩', '用背肌不要用手臂']
+    },
+    '啞鈴肩推': {
+        englishName: 'dumbbell shoulder press standing',
+        primary: ['肩'],
+        secondary: ['手臂'],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '8-12下',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['雙腳與肩同寬站立，核心收緊', '雙手持啞鈴於肩膀兩側', '向上推起至頭頂上方', '緩慢回到起始位置'],
+        notes: ['不要鎖死手肘', '腰部不要過度後仰', '核心持續收緊']
+    },
+    '啞鈴側平舉': {
+        englishName: 'dumbbell lateral raise',
+        primary: ['肩'],
+        secondary: [],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '12-15下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['雙腳與肩同寬，雙手持啞鈴於身體兩側', '手肘微彎', '側舉至雙臂與地面平行', '緩慢放下'],
+        notes: ['不要聳肩', '用較輕的重量', '感受肩膀中束用力']
+    },
+    '啞鈴前平舉': {
+        englishName: 'dumbbell front raise',
+        primary: ['肩'],
+        secondary: [],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '10-12下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['雙腳與肩同寬，雙手持啞鈴於大腿前方', '手肘微彎', '前舉至與肩同高', '緩慢放下'],
+        notes: ['不要超過肩高', '不要靠擺動', '可以單手交替做']
+    },
+    '阻力帶肩推': {
+        englishName: 'resistance band shoulder press',
+        primary: ['肩'],
+        secondary: ['手臂'],
+        equipment: ['阻力帶'],
+        difficulty: 2,
+        defaultReps: '12-15下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['阻力帶踩在腳下，雙手握住兩端', '雙手舉至肩膀位置', '向上推起至頭頂', '緩慢回到起始位置'],
+        notes: ['核心收緊', '不要拱腰', '阻力帶要踩穩']
+    },
+    '阻力帶側平舉': {
+        englishName: 'resistance band lateral raise',
+        primary: ['肩'],
+        secondary: [],
+        equipment: ['阻力帶'],
+        difficulty: 2,
+        defaultReps: '12-15下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['阻力帶踩在腳下，雙手握住', '雙臂向兩側舉起', '至與肩同高', '緩慢放下'],
+        notes: ['手肘微彎', '不要聳肩', '感受肩部用力']
+    },
+    '啞鈴俯身側平舉': {
+        englishName: 'bent over dumbbell lateral raise',
+        primary: ['肩'],
+        secondary: ['背'],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '12-15下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['上身前傾約 45 度', '雙手持啞鈴自然下垂', '手肘微彎，雙臂側向後抬起', '緩慢放下'],
+        notes: ['用較輕的重量', '感受後三角肌', '背部要平直']
+    },
+    '阿諾肩推': {
+        englishName: 'arnold press',
+        primary: ['肩'],
+        secondary: ['手臂'],
+        equipment: ['啞鈴'],
+        difficulty: 3,
+        defaultReps: '8-12下',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['雙手持啞鈴於胸前，掌心朝向自己', '推起時旋轉手腕', '至頂點時掌心朝外', '反向回到起始位置'],
+        notes: ['進階動作', '注意肩膀靈活度', '可先掌握標準肩推']
+    },
+    '啞鈴繞圈': {
+        englishName: 'dumbbell shoulder circles',
+        primary: ['肩'],
+        secondary: [],
+        equipment: ['啞鈴'],
+        difficulty: 1,
+        defaultReps: '10下/方向',
+        defaultRest: 30,
+        sets: 2,
+        howTo: ['雙手持輕啞鈴，雙臂下垂', '緩慢向前繞圈', '完成後反向繞圈', '保持手臂打直'],
+        notes: ['熱身用，重量輕', '動作要慢', '感到不適立刻停止']
+    },
+    '俯臥推舉': {
+        englishName: 'pike pushup',
+        primary: ['肩'],
+        secondary: ['手臂', '胸'],
+        equipment: ['徒手'],
+        difficulty: 3,
+        defaultReps: '6-12下',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['俯臥撐姿勢，臀部抬高呈 V 字', '雙手在肩膀正下方', '頭朝下，緩慢下降', '推起回到 V 字位置'],
+        notes: ['進階肩膀動作', '可作為倒立伏地挺身的入門', '注意手腕']
+    },
+    '阻力帶 Y 字': {
+        englishName: 'resistance band Y raise',
+        primary: ['肩'],
+        secondary: ['背'],
+        equipment: ['阻力帶'],
+        difficulty: 2,
+        defaultReps: '12-15下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['雙腳踩住阻力帶，雙手握住兩端', '雙手交叉於身前', '向斜上方舉起，形成 Y 字', '緩慢放下'],
+        notes: ['幫助改善圓肩', '感受上背和肩用力', '不要聳肩']
+    },
+    '啞鈴二頭彎舉': {
+        englishName: 'dumbbell bicep curl',
+        primary: ['手臂'],
+        secondary: [],
+        equipment: ['啞鈴'],
+        difficulty: 1,
+        defaultReps: '10-12下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['雙腳與肩同寬，雙手持啞鈴於身體兩側', '掌心朝前', '彎曲手肘，將啞鈴向上彎舉', '緩慢放下'],
+        notes: ['不要靠擺動身體借力', '專注二頭肌用力', '完整下放']
+    },
+    '啞鈴錘式彎舉': {
+        englishName: 'hammer curl',
+        primary: ['手臂'],
+        secondary: [],
+        equipment: ['啞鈴'],
+        difficulty: 1,
+        defaultReps: '10-12下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['雙手持啞鈴，掌心相對', '手腕保持中立位', '彎曲手肘將啞鈴舉起', '緩慢放下'],
+        notes: ['訓練前臂同時也練二頭', '不要前後擺動', '動作要慢']
+    },
+    '啞鈴三頭伸展': {
+        englishName: 'dumbbell tricep extension overhead',
+        primary: ['手臂'],
+        secondary: [],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '10-12下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['雙手共持一個啞鈴，舉於頭頂上方', '手肘指向天花板', '彎曲手肘將啞鈴下降至腦後', '推起回到起始位置'],
+        notes: ['手肘要固定不動', '感到肘關節不適立刻停止', '用較輕的重量']
+    },
+    '啞鈴三頭俯身': {
+        englishName: 'tricep kickback dumbbell',
+        primary: ['手臂'],
+        secondary: [],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '12-15下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['上身前傾約 45 度，背部打直', '上臂貼緊身體，手肘彎曲 90 度', '伸直手臂，將啞鈴向後推', '緩慢回到起始位置'],
+        notes: ['上臂保持不動', '專注三頭肌伸展', '用較輕的重量']
+    },
+    '阻力帶二頭彎舉': {
+        englishName: 'resistance band bicep curl',
+        primary: ['手臂'],
+        secondary: [],
+        equipment: ['阻力帶'],
+        difficulty: 1,
+        defaultReps: '12-15下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['雙腳踩住阻力帶，雙手握住兩端', '掌心朝前', '彎曲手肘向上拉', '緩慢放下'],
+        notes: ['手肘固定不動', '感受二頭收縮', '腳要踩穩']
+    },
+    '阻力帶三頭下拉': {
+        englishName: 'resistance band tricep pushdown',
+        primary: ['手臂'],
+        secondary: [],
+        equipment: ['阻力帶'],
+        difficulty: 1,
+        defaultReps: '12-15下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['阻力帶固定於高處', '雙手握住阻力帶於胸前', '手肘貼緊身體，向下伸直手臂', '緩慢回到起始位置'],
+        notes: ['上臂固定', '手腕保持中立', '感受三頭收縮']
+    },
+    '啞鈴 21 下': {
+        englishName: 'dumbbell 21s curl',
+        primary: ['手臂'],
+        secondary: [],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '21下（7+7+7）',
+        defaultRest: 90,
+        sets: 3,
+        howTo: ['前 7 下：彎舉至中段 (90 度)', '中 7 下：從中段彎舉至頂端', '後 7 下：完整全幅度彎舉', '不休息一次完成 21 下'],
+        notes: ['用較輕的重量', '燃燒感很強', '進階訓練法']
+    },
+    '反握啞鈴彎舉': {
+        englishName: 'reverse grip dumbbell curl',
+        primary: ['手臂'],
+        secondary: [],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '10-12下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['雙手持啞鈴，掌心朝後', '彎曲手肘將啞鈴舉起', '保持掌心朝後', '緩慢放下'],
+        notes: ['訓練前臂', '用較輕的重量', '手腕保持中立']
+    },
+    '啞鈴集中彎舉': {
+        englishName: 'concentration curl',
+        primary: ['手臂'],
+        secondary: [],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '10下/邊',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['坐在地上或低台，膝蓋打開', '一手肘抵在大腿內側', '彎舉啞鈴至肩膀', '緩慢放下'],
+        notes: ['手肘固定', '專注二頭肌孤立用力', '用較輕的重量']
+    },
+    '啞鈴握力訓練': {
+        englishName: 'dumbbell wrist curl',
+        primary: ['手臂'],
+        secondary: [],
+        equipment: ['啞鈴'],
+        difficulty: 1,
+        defaultReps: '15-20下',
+        defaultRest: 30,
+        sets: 3,
+        howTo: ['坐姿或跪姿，前臂抵在大腿上', '掌心朝上，啞鈴在手心', '只用手腕力量上下捲動', '緩慢控制動作'],
+        notes: ['訓練前臂和握力', '用很輕的重量', '可掌心朝下做反向練']
+    },
+    '啞鈴深蹲': {
+        englishName: 'dumbbell squat',
+        primary: ['腿'],
+        secondary: ['臀', '核心'],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '10-12下',
+        defaultRest: 75,
+        sets: 3,
+        howTo: ['雙腳與肩同寬，腳尖微微外八', '雙手持啞鈴於身體兩側', '臀部後坐，膝蓋彎曲', '下蹲至大腿與地面平行，挺身回到起始位置'],
+        notes: ['膝蓋與腳尖同方向', '背部保持直立', '感到膝蓋痛立刻停止']
+    },
+    '啞鈴酒杯式深蹲': {
+        englishName: 'goblet squat',
+        primary: ['腿'],
+        secondary: ['臀', '核心'],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '10-12下',
+        defaultRest: 75,
+        sets: 3,
+        howTo: ['雙手抱一個啞鈴於胸前', '雙腳比肩稍寬，腳尖微微外八', '深蹲下至大腿低於水平', '挺身回到起始位置'],
+        notes: ['初學者首選深蹲變化', '保持挺胸', '膝蓋穩定不晃動']
+    },
+    '徒手深蹲': {
+        englishName: 'bodyweight squat',
+        primary: ['腿'],
+        secondary: ['臀'],
+        equipment: ['徒手'],
+        difficulty: 1,
+        defaultReps: '15-20下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['雙腳與肩同寬', '雙手向前平舉', '臀部後坐下蹲', '挺身回到起始位置'],
+        notes: ['膝蓋與腳尖同方向', '深蹲至大腿水平', '腳跟貼地']
+    },
+    '啞鈴弓步蹲': {
+        englishName: 'dumbbell lunge',
+        primary: ['腿'],
+        secondary: ['臀'],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '10下/邊',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['雙手持啞鈴於身體兩側', '一腳向前跨出大步', '前腳膝蓋彎成 90 度，後膝幾乎觸地', '推回起始位置，換腿'],
+        notes: ['前膝不要超過腳尖', '上身挺直', '兩腳交替做或單腿做完換邊']
+    },
+    '啞鈴保加利亞分腿蹲': {
+        englishName: 'bulgarian split squat',
+        primary: ['腿'],
+        secondary: ['臀'],
+        equipment: ['啞鈴'],
+        difficulty: 3,
+        defaultReps: '8-10下/邊',
+        defaultRest: 75,
+        sets: 3,
+        howTo: ['一腳放在床上或低矮平台上（後腳）', '另一腳前跨一大步', '雙手持啞鈴於身體兩側', '下蹲至前腿大腿與地面平行'],
+        notes: ['前腳大腿與小腿成 90 度', '需要椅子但你沒有，可用床或低台', '用較輕的重量開始']
+    },
+    '啞鈴側弓步': {
+        englishName: 'lateral lunge dumbbell',
+        primary: ['腿'],
+        secondary: ['臀'],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '10下/邊',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['雙腳並攏站立', '一腳向側方跨出', '臀部後坐，跨出腳膝蓋彎曲', '推回起始位置，換邊'],
+        notes: ['訓練側面腿肌', '另一腿伸直', '感受大腿內側拉伸']
+    },
+    '啞鈴後弓步': {
+        englishName: 'reverse lunge dumbbell',
+        primary: ['腿'],
+        secondary: ['臀'],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '10下/邊',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['雙手持啞鈴於身體兩側', '一腳向後跨出大步', '下蹲至前腿大腿水平', '推回起始位置，換邊'],
+        notes: ['對膝蓋友善的弓步變化', '上身挺直', '前膝在腳跟正上方']
+    },
+    '啞鈴羅馬尼亞硬舉': {
+        englishName: 'romanian deadlift dumbbell',
+        primary: ['腿', '臀'],
+        secondary: ['背'],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '10-12下',
+        defaultRest: 75,
+        sets: 3,
+        howTo: ['雙腳與肩同寬，雙手持啞鈴於身前', '臀部向後推，膝蓋微彎', '保持背部平直，啞鈴沿著大腿前側下滑', '感受腿後側拉伸後挺身回到起始位置'],
+        notes: ['背部全程保持平直', '不是彎腰，是髖關節折疊', '膝蓋微彎不變']
+    },
+    '單腿羅馬尼亞硬舉': {
+        englishName: 'single leg romanian deadlift',
+        primary: ['腿', '臀'],
+        secondary: ['核心'],
+        equipment: ['啞鈴'],
+        difficulty: 3,
+        defaultReps: '8下/邊',
+        defaultRest: 75,
+        sets: 3,
+        howTo: ['單手持啞鈴，相對的腳站立', '另一腳向後抬起', '上身前傾，啞鈴下放', '回到起始位置'],
+        notes: ['平衡很重要，可扶東西', '保持身體成一直線', '訓練核心和臀']
+    },
+    '啞鈴箱深蹲': {
+        englishName: 'dumbbell box squat',
+        primary: ['腿'],
+        secondary: ['臀'],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '10-12下',
+        defaultRest: 75,
+        sets: 3,
+        howTo: ['床或低矮平台後站立', '雙手持啞鈴於身前', '深蹲至臀部碰床面', '不停留立刻挺身'],
+        notes: ['控制下蹲速度', '坐到床面但不放鬆', '幫助練習深度']
+    },
+    '小腿提踵': {
+        englishName: 'calf raise dumbbell',
+        primary: ['腿'],
+        secondary: [],
+        equipment: ['啞鈴'],
+        difficulty: 1,
+        defaultReps: '15-20下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['雙腳與肩同寬站立', '雙手持啞鈴於身體兩側', '腳尖踮起，提起腳跟', '在最高點停留 1 秒後緩慢放下'],
+        notes: ['可單腿做增加難度', '腳尖完全踮起', '感受小腿用力']
+    },
+    '坐姿小腿提踵': {
+        englishName: 'seated calf raise dumbbell',
+        primary: ['腿'],
+        secondary: [],
+        equipment: ['啞鈴'],
+        difficulty: 1,
+        defaultReps: '15-20下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['坐在床邊或低矮平台', '雙手持啞鈴放在膝蓋上', '腳尖踮起', '緩慢放下'],
+        notes: ['訓練比目魚肌（小腿深層）', '動作要慢', '感受小腿燃燒']
+    },
+    '阻力帶深蹲': {
+        englishName: 'resistance band squat',
+        primary: ['腿'],
+        secondary: ['臀'],
+        equipment: ['阻力帶'],
+        difficulty: 2,
+        defaultReps: '12-15下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['阻力帶踩在腳下，雙手握住兩端於肩膀', '深蹲下', '挺身回到起始位置', '阻力帶提供持續阻力'],
+        notes: ['膝蓋與腳尖同方向', '阻力帶要踩穩', '完整深度']
+    },
+    '阻力帶蚌殻式': {
+        englishName: 'resistance band clamshell',
+        primary: ['腿'],
+        secondary: ['臀'],
+        equipment: ['阻力帶'],
+        difficulty: 1,
+        defaultReps: '12-15下/邊',
+        defaultRest: 30,
+        sets: 3,
+        howTo: ['阻力帶套在大腿上方', '側躺，膝蓋彎曲 90 度', '腳跟併攏，膝蓋向上打開', '緩慢回到起始位置'],
+        notes: ['訓練臀中肌', '上身保持不動', '對改善髖部穩定有幫助']
+    },
+    '阻力帶側走': {
+        englishName: 'resistance band lateral walk',
+        primary: ['腿'],
+        secondary: ['臀'],
+        equipment: ['阻力帶'],
+        difficulty: 1,
+        defaultReps: '10下/方向',
+        defaultRest: 30,
+        sets: 3,
+        howTo: ['阻力帶套在腳踝或膝蓋上方', '微蹲姿勢', '側向跨步走', '保持阻力帶張力'],
+        notes: ['臀中肌訓練', '步幅要小', '上身穩定不晃動']
+    },
+    '臀橋': {
+        englishName: 'glute bridge',
+        primary: ['臀'],
+        secondary: ['核心'],
+        equipment: ['瑜伽墊'],
+        difficulty: 1,
+        defaultReps: '15-20下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['平躺，雙膝彎曲，腳掌貼地', '雙臂放於身體兩側', '收緊臀部，將髖部向上推起', '在頂點停留 1 秒後緩慢放下'],
+        notes: ['動作頂點臀部要全力收緊', '腰部不要過度後仰', '感受臀部用力']
+    },
+    '單腿臀橋': {
+        englishName: 'single leg glute bridge',
+        primary: ['臀'],
+        secondary: ['核心'],
+        equipment: ['瑜伽墊'],
+        difficulty: 2,
+        defaultReps: '10下/邊',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['平躺，一腿彎曲腳掌貼地', '另一腿伸直', '收緊臀部將髖部向上推起', '緩慢放下'],
+        notes: ['髖部不要歪斜', '保持骨盆水平', '進階版臀橋']
+    },
+    '啞鈴臀橋': {
+        englishName: 'dumbbell hip thrust',
+        primary: ['臀'],
+        secondary: ['核心'],
+        equipment: ['啞鈴', '瑜伽墊'],
+        difficulty: 2,
+        defaultReps: '12-15下',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['平躺，雙膝彎曲，腳掌貼地', '一個啞鈴放在髖部上', '雙手扶住啞鈴', '收緊臀部，將髖部向上推起'],
+        notes: ['啞鈴位置要穩固', '頂點臀部全力收緊', '腰不要過度後仰']
+    },
+    '啞鈴相撲深蹲': {
+        englishName: 'dumbbell sumo squat',
+        primary: ['臀'],
+        secondary: ['腿'],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '10-12下',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['雙腳張開比肩寬很多，腳尖外八', '雙手共持一個啞鈴於身前', '深蹲下至大腿水平', '挺身回到起始位置'],
+        notes: ['更專注於臀部和大腿內側', '膝蓋與腳尖同方向', '深度足夠']
+    },
+    '驢踢': {
+        englishName: 'donkey kick',
+        primary: ['臀'],
+        secondary: ['核心'],
+        equipment: ['瑜伽墊'],
+        difficulty: 1,
+        defaultReps: '12-15下/邊',
+        defaultRest: 30,
+        sets: 3,
+        howTo: ['四足跪姿', '一腿膝蓋彎曲 90 度', '腳掌朝天花板向上踢', '感受臀部用力'],
+        notes: ['不要拱腰', '核心收緊', '臀部主導動作']
+    },
+    '消防栓式': {
+        englishName: 'fire hydrant',
+        primary: ['臀'],
+        secondary: [],
+        equipment: ['瑜伽墊'],
+        difficulty: 1,
+        defaultReps: '12-15下/邊',
+        defaultRest: 30,
+        sets: 3,
+        howTo: ['四足跪姿', '一腿保持彎曲 90 度', '向側上方抬起膝蓋', '緩慢放下'],
+        notes: ['訓練臀中肌', '保持骨盆水平', '不要扭轉軀幹']
+    },
+    '阻力帶臀橋': {
+        englishName: 'resistance band glute bridge',
+        primary: ['臀'],
+        secondary: ['核心'],
+        equipment: ['阻力帶', '瑜伽墊'],
+        difficulty: 2,
+        defaultReps: '15-20下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['平躺，阻力帶套在大腿上方', '雙膝彎曲，腳掌貼地', '推起髖部同時膝蓋向外推', '緩慢放下'],
+        notes: ['雙重刺激臀部和臀中肌', '頂點時膝蓋要分開', '阻力帶位置正確']
+    },
+    '青蛙泵': {
+        englishName: 'frog pump',
+        primary: ['臀'],
+        secondary: [],
+        equipment: ['瑜伽墊'],
+        difficulty: 1,
+        defaultReps: '20-25下',
+        defaultRest: 30,
+        sets: 3,
+        howTo: ['平躺，膝蓋向兩側打開', '雙腳掌貼合', '推起髖部', '緩慢放下'],
+        notes: ['更孤立臀部', '臀部用力到極致', '可作為臀部熱身或結尾燃燒']
+    },
+    '平板支撐': {
+        englishName: 'plank proper form',
+        primary: ['核心'],
+        secondary: ['肩'],
+        equipment: ['瑜伽墊'],
+        difficulty: 2,
+        defaultReps: '30-60秒',
+        defaultRest: 30,
+        sets: 3,
+        howTo: ['俯臥撐姿勢，前臂著地', '手肘在肩膀正下方', '身體成一直線', '保持姿勢，呼吸正常'],
+        notes: ['臀部不要翹高或塌下', '核心收緊', '感到腰痛立刻停止']
+    },
+    '側平板': {
+        englishName: 'side plank',
+        primary: ['核心'],
+        secondary: ['肩'],
+        equipment: ['瑜伽墊'],
+        difficulty: 2,
+        defaultReps: '30秒/邊',
+        defaultRest: 30,
+        sets: 3,
+        howTo: ['側躺，前臂著地', '手肘在肩膀正下方', '抬起髖部，身體成一直線', '保持姿勢'],
+        notes: ['髖部不要下垂', '單側做完換邊', '頸椎中立']
+    },
+    '平板抬腿': {
+        englishName: 'plank with leg lift',
+        primary: ['核心'],
+        secondary: ['臀'],
+        equipment: ['瑜伽墊'],
+        difficulty: 3,
+        defaultReps: '30秒',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['平板支撐姿勢', '輪流抬起一腿', '保持身體穩定', '緩慢交替'],
+        notes: ['髖部不要左右搖晃', '核心持續收緊', '進階平板動作']
+    },
+    '捲腹': {
+        englishName: 'crunch proper form',
+        primary: ['核心'],
+        secondary: [],
+        equipment: ['瑜伽墊'],
+        difficulty: 1,
+        defaultReps: '15-20下',
+        defaultRest: 30,
+        sets: 3,
+        howTo: ['平躺，雙膝彎曲腳掌貼地', '雙手輕扶頭部兩側', '捲起上半身，肩胛骨離地', '緩慢放下'],
+        notes: ['不要用手拉脖子', '腰部貼地', '感受腹部收縮']
+    },
+    '反向捲腹': {
+        englishName: 'reverse crunch',
+        primary: ['核心'],
+        secondary: [],
+        equipment: ['瑜伽墊'],
+        difficulty: 2,
+        defaultReps: '12-15下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['平躺，雙腿彎曲抬起 90 度', '雙手放於身體兩側', '將髖部捲向胸部', '緩慢放下'],
+        notes: ['訓練下腹', '不要用慣性甩動', '核心主導動作']
+    },
+    '俄羅斯轉體': {
+        englishName: 'russian twist',
+        primary: ['核心'],
+        secondary: [],
+        equipment: ['瑜伽墊'],
+        difficulty: 2,
+        defaultReps: '20下（10/邊）',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['坐姿，膝蓋彎曲，腳跟離地', '上身後傾約 45 度', '雙手交握於身前', '左右轉動身體，雙手碰地'],
+        notes: ['訓練腹斜肌', '可加啞鈴增加阻力', '保持脊椎中立']
+    },
+    '啞鈴俄羅斯轉體': {
+        englishName: 'dumbbell russian twist',
+        primary: ['核心'],
+        secondary: [],
+        equipment: ['啞鈴', '瑜伽墊'],
+        difficulty: 3,
+        defaultReps: '20下（10/邊）',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['坐姿，膝蓋彎曲，腳跟離地', '雙手共持一個啞鈴', '上身後傾約 45 度', '左右轉動身體'],
+        notes: ['用較輕的啞鈴', '不要靠手臂力量', '核心主導旋轉']
+    },
+    '死蟲式': {
+        englishName: 'dead bug exercise',
+        primary: ['核心'],
+        secondary: [],
+        equipment: ['瑜伽墊'],
+        difficulty: 1,
+        defaultReps: '10下/邊',
+        defaultRest: 30,
+        sets: 3,
+        howTo: ['平躺，雙臂向上伸直，雙腿彎曲 90 度抬起', '腰部貼地', '對側手腳緩慢下放', '回到起始位置換邊'],
+        notes: ['對下背友善的核心訓練', '腰部全程貼地', '動作要慢']
+    },
+    '鳥狗式': {
+        englishName: 'bird dog exercise',
+        primary: ['核心'],
+        secondary: ['背', '臀'],
+        equipment: ['瑜伽墊'],
+        difficulty: 1,
+        defaultReps: '10下/邊',
+        defaultRest: 30,
+        sets: 3,
+        howTo: ['四足跪姿', '同時伸直對側手和腿', '保持身體穩定，背部平直', '收回換邊'],
+        notes: ['身體不要搖晃', '伸直的手腳與身體同高', '對改善姿勢很有幫助']
+    },
+    '空中腳踏車': {
+        englishName: 'bicycle crunch',
+        primary: ['核心'],
+        secondary: [],
+        equipment: ['瑜伽墊'],
+        difficulty: 2,
+        defaultReps: '20下（10/邊）',
+        defaultRest: 30,
+        sets: 3,
+        howTo: ['平躺，雙手輕扶頭側', '一腿彎曲一腿伸直', '對側手肘碰膝蓋', '交替進行'],
+        notes: ['訓練腹斜肌', '不要用手拉脖子', '動作要慢']
+    },
+    'V 字捲腹': {
+        englishName: 'v ups',
+        primary: ['核心'],
+        secondary: [],
+        equipment: ['瑜伽墊'],
+        difficulty: 3,
+        defaultReps: '10-15下',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['平躺，雙手向後伸直', '同時抬起雙腿和上半身', '雙手碰腳尖，形成 V 字', '緩慢放下'],
+        notes: ['進階核心動作', '腰部容易受傷，先做基礎', '動作要連貫']
+    },
+    '剪刀腿': {
+        englishName: 'flutter kicks',
+        primary: ['核心'],
+        secondary: [],
+        equipment: ['瑜伽墊'],
+        difficulty: 2,
+        defaultReps: '30秒',
+        defaultRest: 30,
+        sets: 3,
+        howTo: ['平躺，雙腿伸直略抬起', '雙手放於身體兩側', '雙腿快速交替上下', '保持腰部貼地'],
+        notes: ['訓練下腹', '腰不要拱起', '腳離地越低越難']
+    },
+    '抬腿': {
+        englishName: 'leg raise',
+        primary: ['核心'],
+        secondary: [],
+        equipment: ['瑜伽墊'],
+        difficulty: 2,
+        defaultReps: '12-15下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['平躺，雙手放於身體兩側', '雙腿伸直', '抬起雙腿至 90 度', '緩慢放下，腳跟不觸地'],
+        notes: ['訓練下腹和髖屈肌', '腰部貼地', '感到腰痛立刻停止']
+    },
+    '懸空 L 字': {
+        englishName: 'l sit hold',
+        primary: ['核心'],
+        secondary: ['手臂', '肩'],
+        equipment: ['啞鈴'],
+        difficulty: 3,
+        defaultReps: '10-20秒',
+        defaultRest: 90,
+        sets: 3,
+        howTo: ['坐在地上，雙手撐住兩個啞鈴', '推起身體離地', '雙腿伸直前舉', '保持姿勢'],
+        notes: ['進階核心和上肢動作', '需要良好上肢力量', '時間先短再加']
+    },
+    '空氣腳踏車（仰臥）': {
+        englishName: 'lying bicycle',
+        primary: ['核心'],
+        secondary: [],
+        equipment: ['瑜伽墊'],
+        difficulty: 1,
+        defaultReps: '30秒',
+        defaultRest: 30,
+        sets: 3,
+        howTo: ['平躺', '雙腿模擬騎腳踏車動作', '腰部貼地', '雙手放於身體兩側或頭側'],
+        notes: ['輕鬆暖身', '可加上對側手肘碰膝增加難度', '保持核心參與']
+    },
+    '啞鈴抓舉': {
+        englishName: 'dumbbell snatch',
+        primary: ['全身'],
+        secondary: ['肩', '腿'],
+        equipment: ['啞鈴'],
+        difficulty: 3,
+        defaultReps: '6-8下/邊',
+        defaultRest: 90,
+        sets: 3,
+        howTo: ['雙腳與肩同寬，啞鈴在腳之間', '半蹲拿起啞鈴', '一氣呵成將啞鈴抓舉至頭頂上方', '緩慢放回起始位置'],
+        notes: ['進階全身動作', '需要良好基礎', '用較輕的重量學習']
+    },
+    '啞鈴推舉深蹲': {
+        englishName: 'dumbbell thruster',
+        primary: ['全身'],
+        secondary: ['肩', '腿'],
+        equipment: ['啞鈴'],
+        difficulty: 3,
+        defaultReps: '8-10下',
+        defaultRest: 90,
+        sets: 3,
+        howTo: ['雙手持啞鈴於肩膀', '深蹲下', '挺身同時將啞鈴推至頭頂', '回到肩膀位置開始下一次'],
+        notes: ['全身性大動作', '節奏要連貫', '心肺要求高']
+    },
+    '波比跳': {
+        englishName: 'burpee',
+        primary: ['全身'],
+        secondary: ['核心', '心肺'],
+        equipment: ['徒手'],
+        difficulty: 3,
+        defaultReps: '8-12下',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['站立姿勢', '蹲下雙手撐地', '雙腳向後跳成俯臥撐', '收回雙腳跳起雙手過頭'],
+        notes: ['高強度燃脂動作', '注意手腕', '量力而為']
+    },
+    '熊爬': {
+        englishName: 'bear crawl',
+        primary: ['全身'],
+        secondary: ['核心', '肩'],
+        equipment: ['瑜伽墊'],
+        difficulty: 2,
+        defaultReps: '30秒',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['四足姿勢，膝蓋離地約 5 公分', '對側手腳同時前進', '保持背部平直', '緩慢爬行'],
+        notes: ['髖部不要左右搖晃', '核心持續收緊', '速度可慢可快']
+    },
+    '螃蟹走': {
+        englishName: 'crab walk',
+        primary: ['全身'],
+        secondary: ['手臂', '腿'],
+        equipment: ['瑜伽墊'],
+        difficulty: 2,
+        defaultReps: '30秒',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['坐地，雙手撐後', '推起髖部成桌面', '對側手腳前進', '保持髖部抬起'],
+        notes: ['訓練三頭肌和臀部', '注意手腕', '髖部不要下塌']
+    },
+    '農夫走': {
+        englishName: 'farmer walk dumbbell',
+        primary: ['全身'],
+        secondary: ['手臂', '核心'],
+        equipment: ['啞鈴'],
+        difficulty: 2,
+        defaultReps: '30-60秒',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['雙手持重啞鈴於身體兩側', '挺胸，肩胛骨夾緊', '正常步伐行走', '保持身體穩定'],
+        notes: ['全身性訓練', '握力極限', '保持核心收緊']
+    },
+    '土耳其起立': {
+        englishName: 'turkish get up dumbbell',
+        primary: ['全身'],
+        secondary: ['核心', '肩'],
+        equipment: ['啞鈴', '瑜伽墊'],
+        difficulty: 3,
+        defaultReps: '3-5下/邊',
+        defaultRest: 120,
+        sets: 3,
+        howTo: ['平躺，一手持啞鈴向上伸直', '對側膝蓋彎曲，腳掌貼地', '逐步從躺姿起身至站姿', '反向回到起始位置'],
+        notes: ['複雜全身動作', '從很輕的重量開始', '看影片學習正確流程']
+    },
+    '深蹲推舉': {
+        englishName: 'squat to overhead press',
+        primary: ['全身'],
+        secondary: ['肩', '腿'],
+        equipment: ['啞鈴'],
+        difficulty: 3,
+        defaultReps: '8-10下',
+        defaultRest: 75,
+        sets: 3,
+        howTo: ['雙手持啞鈴於肩膀', '深蹲下', '挺身同時推舉過頭', '放回肩膀繼續下一次'],
+        notes: ['練全身和心肺', '節奏要連貫', '掌握雙腳穩定']
+    },
+    '啞鈴 Renegade Row': {
+        englishName: 'renegade row',
+        primary: ['全身'],
+        secondary: ['背', '核心'],
+        equipment: ['啞鈴'],
+        difficulty: 3,
+        defaultReps: '8下/邊',
+        defaultRest: 75,
+        sets: 3,
+        howTo: ['俯臥撐姿勢，雙手握住啞鈴', '保持身體穩定', '一手划船至腰部', '回到起始位置換邊'],
+        notes: ['髖部不要扭動', '核心穩定最重要', '進階動作']
+    },
+    '雙啞鈴清舉': {
+        englishName: 'dumbbell clean',
+        primary: ['全身'],
+        secondary: ['腿', '背'],
+        equipment: ['啞鈴'],
+        difficulty: 3,
+        defaultReps: '6-8下',
+        defaultRest: 90,
+        sets: 3,
+        howTo: ['雙腳與肩同寬，啞鈴在腿前', '半蹲拿起啞鈴', '爆發力上拉至肩膀', '緩慢放下'],
+        notes: ['爆發性動作', '需要學習', '從輕開始']
+    },
+    '開合跳': {
+        englishName: 'jumping jacks',
+        primary: ['心肺'],
+        secondary: ['全身'],
+        equipment: ['徒手'],
+        difficulty: 1,
+        defaultReps: '30-60秒',
+        defaultRest: 30,
+        sets: 3,
+        howTo: ['雙腳併攏站立', '雙腳跳開同時雙手舉過頭', '雙腳併攏同時雙手放下', '快速連續進行'],
+        notes: ['暖身或燃脂的好動作', '腳尖落地緩衝', '注意膝蓋']
+    },
+    '高抬腿': {
+        englishName: 'high knees',
+        primary: ['心肺'],
+        secondary: ['核心', '腿'],
+        equipment: ['徒手'],
+        difficulty: 2,
+        defaultReps: '30秒',
+        defaultRest: 30,
+        sets: 3,
+        howTo: ['原地站立', '快速抬高膝蓋至腰部高度', '雙手前後擺動', '節奏快速'],
+        notes: ['心肺和核心訓練', '腳尖落地', '速度量力而為']
+    },
+    '登山者': {
+        englishName: 'mountain climbers',
+        primary: ['核心'],
+        secondary: ['心肺', '肩'],
+        equipment: ['瑜伽墊'],
+        difficulty: 2,
+        defaultReps: '30秒',
+        defaultRest: 30,
+        sets: 3,
+        howTo: ['俯臥撐姿勢', '輪流將膝蓋拉向胸部', '保持髖部低位', '速度快但動作標準'],
+        notes: ['核心持續收緊', '注意手腕', '心肺強化']
+    },
+    '跳躍深蹲': {
+        englishName: 'jump squat',
+        primary: ['腿'],
+        secondary: ['臀', '心肺'],
+        equipment: ['徒手'],
+        difficulty: 2,
+        defaultReps: '10-15下',
+        defaultRest: 45,
+        sets: 3,
+        howTo: ['深蹲姿勢', '挺身同時向上跳躍', '腳尖落地緩衝', '立刻接下一次深蹲'],
+        notes: ['爆發力訓練', '腳尖落地', '膝蓋有問題的人不適合']
+    },
+    '波比跳簡化版': {
+        englishName: 'modified burpee',
+        primary: ['心肺'],
+        secondary: ['全身'],
+        equipment: ['徒手'],
+        difficulty: 2,
+        defaultReps: '8-12下',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['站立', '蹲下雙手撐地', '雙腳向後步行（不跳）', '收回雙腳站起來'],
+        notes: ['初學者波比跳', '對膝蓋友善', '逐漸進階']
+    },
+    '跳繩': {
+        englishName: 'jump rope',
+        primary: ['心肺'],
+        secondary: ['腿', '肩'],
+        equipment: ['跳繩'],
+        difficulty: 2,
+        defaultReps: '60秒',
+        defaultRest: 30,
+        sets: 3,
+        howTo: ['雙手持跳繩兩端', '手腕主導擺動', '腳尖輕跳', '保持節奏'],
+        notes: ['全身協調性訓練', '腳尖落地', '從少時間開始']
+    },
+    '跳箱（用低台）': {
+        englishName: 'box jump low',
+        primary: ['腿'],
+        secondary: ['臀', '心肺'],
+        equipment: ['徒手'],
+        difficulty: 3,
+        defaultReps: '8-12下',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['站在穩固平台前', '半蹲積累力量', '跳上平台', '步行下來，不要跳下'],
+        notes: ['注意安全，平台要穩固', '高度量力而為', '膝蓋有問題的人不適合']
+    },
+    '快速踏步': {
+        englishName: 'fast feet',
+        primary: ['心肺'],
+        secondary: ['腿'],
+        equipment: ['徒手'],
+        difficulty: 1,
+        defaultReps: '30秒',
+        defaultRest: 30,
+        sets: 3,
+        howTo: ['原地半蹲姿勢', '雙腳輪流快速點地', '腳掌不離地太多', '保持節奏'],
+        notes: ['暖身或心肺訓練', '腳尖點地', '速度愈快愈好']
+    },
 };
 
 // ============================================
@@ -324,6 +1509,12 @@ function FitnessApp() {
     const [currentPage, setCurrentPage] = useState('home');
     const [mainTab, setMainTab] = useState('workout'); // 'workout' or 'food'
     const [userLocation, setUserLocation] = useState(null);
+    // 動作搜尋頁狀態
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterMuscles, setFilterMuscles] = useState([]);
+    const [filterEquipment, setFilterEquipment] = useState([]);
+    const [filterDifficulty, setFilterDifficulty] = useState([]);
+    const [favoriteExercises, setFavoriteExercises] = useState([]);
     const [selectedDay, setSelectedDay] = useState(null);
     const [duration, setDuration] = useState('standard');
     const [customWorkouts, setCustomWorkouts] = useState({});
@@ -364,6 +1555,8 @@ function FitnessApp() {
         }
         if (settings?.soundEnabled !== undefined) setSoundEnabled(settings.soundEnabled);
         if (settings?.vibrationEnabled !== undefined) setVibrationEnabled(settings.vibrationEnabled);
+        var favs = safeStorage.get('fittrack_favorites');
+        if (favs && Array.isArray(favs)) setFavoriteExercises(favs);
         
         const workouts = safeStorage.get('fittrack_customWorkouts');
         if (workouts) setCustomWorkouts(workouts);
@@ -596,6 +1789,67 @@ function FitnessApp() {
     const saveProgress = (newProgress) => {
         setProgress(newProgress);
         safeStorage.set('fittrack_progress', newProgress);
+    };
+    
+    // 收藏功能
+    const toggleFavorite = (exerciseName) => {
+        var newFavs;
+        if (favoriteExercises.indexOf(exerciseName) >= 0) {
+            newFavs = favoriteExercises.filter(function(n) { return n !== exerciseName; });
+        } else {
+            newFavs = favoriteExercises.concat([exerciseName]);
+        }
+        setFavoriteExercises(newFavs);
+        safeStorage.set('fittrack_favorites', newFavs);
+    };
+    
+    // 篩選邏輯
+    const getFilteredExercises = () => {
+        var allExercises = Object.keys(exerciseDB);
+        return allExercises.filter(function(name) {
+            var ex = exerciseDB[name];
+            
+            // 搜尋關鍵字
+            if (searchQuery && searchQuery.length > 0) {
+                var lowerQuery = searchQuery.toLowerCase();
+                if (name.toLowerCase().indexOf(lowerQuery) < 0 && 
+                    (ex.englishName || '').toLowerCase().indexOf(lowerQuery) < 0) {
+                    return false;
+                }
+            }
+            
+            // 肌群篩選（OR 邏輯：選中任一即顯示）
+            if (filterMuscles.length > 0) {
+                var hasAnyMuscle = false;
+                for (var i = 0; i < filterMuscles.length; i++) {
+                    if (ex.primary.indexOf(filterMuscles[i]) >= 0 || 
+                        (ex.secondary || []).indexOf(filterMuscles[i]) >= 0) {
+                        hasAnyMuscle = true;
+                        break;
+                    }
+                }
+                if (!hasAnyMuscle) return false;
+            }
+            
+            // 器材篩選（OR 邏輯）
+            if (filterEquipment.length > 0) {
+                var hasAnyEq = false;
+                for (var j = 0; j < filterEquipment.length; j++) {
+                    if ((ex.equipment || []).indexOf(filterEquipment[j]) >= 0) {
+                        hasAnyEq = true;
+                        break;
+                    }
+                }
+                if (!hasAnyEq) return false;
+            }
+            
+            // 難度篩選
+            if (filterDifficulty.length > 0) {
+                if (filterDifficulty.indexOf(ex.difficulty) < 0) return false;
+            }
+            
+            return true;
+        });
     };
     
     // 取得使用者位置
@@ -992,6 +2246,173 @@ function FitnessApp() {
     };
     
     // ============================================
+    // 動作資料庫頁面
+    // ============================================
+    const ExerciseLibraryPage = () => {
+        const allMuscles = ['胸', '背', '肩', '腿', '臀', '手臂', '核心', '全身', '心肺'];
+        const allEquipment = ['啞鈴', '徒手', '阻力帶', '瑜伽墊', '跳繩'];
+        const filteredExercises = getFilteredExercises();
+        
+        const toggleFilter = (filterArr, value, setter) => {
+            if (filterArr.indexOf(value) >= 0) {
+                setter(filterArr.filter(function(v) { return v !== value; }));
+            } else {
+                setter(filterArr.concat([value]));
+            }
+        };
+        
+        const clearAllFilters = () => {
+            setSearchQuery('');
+            setFilterMuscles([]);
+            setFilterEquipment([]);
+            setFilterDifficulty([]);
+        };
+        
+        const hasActiveFilters = searchQuery.length > 0 || filterMuscles.length > 0 || filterEquipment.length > 0 || filterDifficulty.length > 0;
+        
+        return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black text-white' },
+            // 頂部
+            React.createElement('div', { className: 'px-5 pt-6 pb-4 sticky top-0 bg-gradient-to-b from-slate-950 via-slate-950/95 to-transparent z-20 backdrop-blur-sm' },
+                React.createElement('div', { className: 'flex justify-between items-start mb-4' },
+                    React.createElement('div', null,
+                        React.createElement('p', { className: 'text-xs text-violet-400 font-mono uppercase tracking-widest mb-1' }, '📚 動作資料庫'),
+                        React.createElement('h1', { className: 'text-3xl font-black bg-gradient-to-r from-white to-violet-300 bg-clip-text text-transparent' }, '搜尋動作'),
+                        React.createElement('p', { className: 'text-sm text-slate-400 mt-1' }, Object.keys(exerciseDB).length + ' 個內建動作')
+                    ),
+                    React.createElement('button', {
+                        onClick: function() { setCurrentPage('home'); },
+                        className: 'px-3 py-2 bg-slate-800 rounded-xl text-slate-300 text-sm'
+                    }, '✕ 關閉')
+                ),
+                
+                // 搜尋框
+                React.createElement('div', { className: 'relative' },
+                    React.createElement('input', {
+                        type: 'text',
+                        value: searchQuery,
+                        onChange: function(e) { setSearchQuery(e.target.value); },
+                        placeholder: '🔎 搜尋動作名稱...',
+                        className: 'w-full px-4 py-3 bg-slate-800 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:border-violet-500'
+                    })
+                )
+            ),
+            
+            React.createElement('div', { className: 'px-5 pb-32 space-y-4' },
+                // 肌群篩選
+                React.createElement('div', null,
+                    React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-wider mb-2 px-1' }, '💪 訓練肌群'),
+                    React.createElement('div', { className: 'flex flex-wrap gap-2' },
+                        allMuscles.map(function(m) {
+                            var isActive = filterMuscles.indexOf(m) >= 0;
+                            return React.createElement('button', {
+                                key: m,
+                                onClick: function() { toggleFilter(filterMuscles, m, setFilterMuscles); },
+                                className: 'px-4 py-2 rounded-full text-sm font-semibold border transition ' + 
+                                    (isActive ? 'bg-violet-500 border-violet-400 text-white' : 'bg-slate-800/50 border-slate-700 text-slate-400')
+                            }, m);
+                        })
+                    )
+                ),
+                
+                // 器材篩選
+                React.createElement('div', null,
+                    React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-wider mb-2 px-1' }, '🛠️ 需要器材'),
+                    React.createElement('div', { className: 'flex flex-wrap gap-2' },
+                        allEquipment.map(function(e) {
+                            var isActive = filterEquipment.indexOf(e) >= 0;
+                            return React.createElement('button', {
+                                key: e,
+                                onClick: function() { toggleFilter(filterEquipment, e, setFilterEquipment); },
+                                className: 'px-4 py-2 rounded-full text-sm font-semibold border transition ' + 
+                                    (isActive ? 'bg-cyan-500 border-cyan-400 text-white' : 'bg-slate-800/50 border-slate-700 text-slate-400')
+                            }, e);
+                        })
+                    )
+                ),
+                
+                // 難度篩選
+                React.createElement('div', null,
+                    React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-wider mb-2 px-1' }, '⭐ 難度'),
+                    React.createElement('div', { className: 'flex gap-2' },
+                        [{level: 1, label: '初階'}, {level: 2, label: '中階'}, {level: 3, label: '進階'}].map(function(d) {
+                            var isActive = filterDifficulty.indexOf(d.level) >= 0;
+                            return React.createElement('button', {
+                                key: d.level,
+                                onClick: function() { toggleFilter(filterDifficulty, d.level, setFilterDifficulty); },
+                                className: 'flex-1 py-2 rounded-xl text-sm font-semibold border transition ' + 
+                                    (isActive ? 'bg-amber-500 border-amber-400 text-white' : 'bg-slate-800/50 border-slate-700 text-slate-400')
+                            }, '★'.repeat(d.level) + ' ' + d.label);
+                        })
+                    )
+                ),
+                
+                // 清除篩選按鈕
+                hasActiveFilters && React.createElement('button', {
+                    onClick: clearAllFilters,
+                    className: 'w-full py-2 bg-slate-800/50 border border-slate-700 rounded-xl text-slate-400 text-sm'
+                }, '清除所有篩選'),
+                
+                // 結果計數
+                React.createElement('div', { className: 'flex items-center justify-between px-1' },
+                    React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-wider' }, '📋 找到 ' + filteredExercises.length + ' 個動作'),
+                    favoriteExercises.length > 0 && React.createElement('p', { className: 'text-xs text-amber-400' }, '⭐ ' + favoriteExercises.length + ' 個收藏')
+                ),
+                
+                // 動作列表
+                filteredExercises.length === 0 ?
+                    React.createElement('div', { className: 'bg-slate-900/50 border border-slate-800 rounded-3xl p-8 text-center' },
+                        React.createElement('p', { className: 'text-4xl mb-2' }, '🔍'),
+                        React.createElement('p', { className: 'text-slate-400' }, '沒有找到符合的動作'),
+                        React.createElement('p', { className: 'text-xs text-slate-500 mt-2' }, '試試清除一些篩選條件')
+                    ) :
+                    React.createElement('div', { className: 'space-y-2' },
+                        filteredExercises.map(function(name) {
+                            var ex = exerciseDB[name];
+                            var isFav = favoriteExercises.indexOf(name) >= 0;
+                            return React.createElement('div', {
+                                key: name,
+                                className: 'bg-slate-900/50 border border-slate-800 rounded-2xl p-4'
+                            },
+                                React.createElement('div', { className: 'flex justify-between items-start mb-2' },
+                                    React.createElement('div', { className: 'flex-1' },
+                                        React.createElement('p', { className: 'font-bold text-white' }, name),
+                                        React.createElement('p', { className: 'text-xs text-slate-500 mt-0.5' }, ex.defaultReps + ' · ' + (ex.equipment || []).join('+'))
+                                    ),
+                                    React.createElement('button', {
+                                        onClick: function() { toggleFavorite(name); },
+                                        className: 'text-2xl ' + (isFav ? 'text-amber-400' : 'text-slate-600')
+                                    }, isFav ? '★' : '☆')
+                                ),
+                                React.createElement('div', { className: 'flex flex-wrap gap-1.5 mb-2' },
+                                    ex.primary.map(function(m, i) {
+                                        return React.createElement('span', {
+                                            key: 'p' + i,
+                                            className: 'text-[10px] px-2 py-0.5 bg-violet-500/20 text-violet-300 border border-violet-500/30 rounded-full'
+                                        }, '主：' + m);
+                                    }),
+                                    (ex.secondary || []).map(function(m, i) {
+                                        return React.createElement('span', {
+                                            key: 's' + i,
+                                            className: 'text-[10px] px-2 py-0.5 bg-slate-700 text-slate-400 border border-slate-600 rounded-full'
+                                        }, '副：' + m);
+                                    }),
+                                    React.createElement('span', {
+                                        className: 'text-[10px] px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full'
+                                    }, '★'.repeat(ex.difficulty))
+                                ),
+                                React.createElement('button', {
+                                    onClick: function() { setShowDetailModal(name); },
+                                    className: 'w-full py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-semibold text-slate-300'
+                                }, '👁 查看詳情 + 影片')
+                            );
+                        })
+                    )
+            ),
+            React.createElement(BottomTabs)
+        );
+    };
+    
+    // ============================================
     // 健康餐頁面
     // ============================================
     const FoodPage = () => {
@@ -1164,6 +2585,10 @@ function FitnessApp() {
     // ============================================
     // 首頁
     // ============================================
+    if (currentPage === 'library') {
+        return React.createElement(ExerciseLibraryPage);
+    }
+    
     if (currentPage === 'home') {
         // 如果在食物分頁，顯示 FoodPage 包在底部 tab bar 裡
         if (mainTab === 'food') {
@@ -1259,6 +2684,19 @@ function FitnessApp() {
                             )
                         );
                     })
+                ),
+                React.createElement('button', {
+                    onClick: () => setCurrentPage('library'),
+                    className: 'w-full p-4 bg-violet-950/30 border border-violet-700/30 rounded-2xl flex items-center justify-between'
+                },
+                    React.createElement('div', { className: 'flex items-center gap-3' },
+                        React.createElement('span', { className: 'text-xl' }, '📚'),
+                        React.createElement('div', { className: 'text-left' },
+                            React.createElement('p', { className: 'font-semibold text-white' }, '動作資料庫'),
+                            React.createElement('p', { className: 'text-[10px] text-violet-400' }, Object.keys(exerciseDB).length + ' 個動作可選 · 篩選與搜尋')
+                        )
+                    ),
+                    React.createElement(Icon, { name: 'chevronRight', size: 20, className: 'text-slate-500' })
                 ),
                 React.createElement('button', {
                     onClick: () => setCurrentPage('stats'),
