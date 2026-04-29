@@ -65,55 +65,6 @@ body {
 <div id="root"></div>
 
 <script>
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for(var i = 0; i < registrations.length; i++) {
-            registrations[i].unregister();
-        }
-    });
-}
-if ('caches' in window) {
-    caches.keys().then(function(names) {
-        for(var i = 0; i < names.length; i++) {
-            caches.delete(names[i]);
-        }
-    });
-}
-
-function hideLoading() {
-    var loading = document.getElementById('loading');
-    if (loading) {
-        loading.style.opacity = '0';
-        setTimeout(function() { 
-            if (loading.parentNode) loading.parentNode.removeChild(loading);
-        }, 300);
-    }
-}
-
-setTimeout(function() {
-    var loading = document.getElementById('loading');
-    if (loading) {
-        var status = document.getElementById('loading-status');
-        if (status) status.innerText = '稍候片刻...';
-    }
-}, 3000);
-
-setTimeout(hideLoading, 10000);
-
-window.addEventListener('load', function() {
-    setTimeout(hideLoading, 800);
-});
-
-var checkInterval = setInterval(function() {
-    var root = document.getElementById('root');
-    if (root && root.children.length > 0) {
-        clearInterval(checkInterval);
-        hideLoading();
-    }
-}, 200);
-</script>
-
-<script>
 // ============================================
 // FitTrack - Kevin 的健身計畫 PWA
 // ============================================
@@ -1924,14 +1875,26 @@ function FitnessApp() {
     };
 
     const recordSet = (reps) => {
-        const newSets = [...completedSets];
-        newSets[currentExerciseIdx] = [...(newSets[currentExerciseIdx] || []), reps];
-        setCompletedSets(newSets);
+        // 使用 functional updater 避免 closure 問題
+        setCompletedSets(function(prev) {
+            var newSets = prev.slice();
+            newSets[currentExerciseIdx] = (newSets[currentExerciseIdx] || []).concat([reps]);
+            
+            // 同步更新進度（用 setProgress functional updater）
+            setProgress(function(prevProgress) {
+                var today = new Date().toISOString().split('T')[0];
+                var newProgress = Object.assign({}, prevProgress);
+                newProgress[today] = Object.assign({}, newProgress[today] || {});
+                newProgress[today][selectedDay] = newSets;
+                // 直接寫 localStorage
+                safeStorage.set('fittrack_progress', newProgress);
+                return newProgress;
+            });
+            
+            return newSets;
+        });
         setIsTimerRunning(false);
         setTimerSeconds(0);
-        const today = new Date().toISOString().split('T')[0];
-        const newProgress = { ...progress, [today]: { ...(progress[today] || {}), [selectedDay]: newSets } };
-        saveProgress(newProgress);
     };
 
     // ============================================
@@ -2863,8 +2826,8 @@ function FitnessApp() {
                             React.createElement('p', { className: 'text-lg font-black text-emerald-400' }, ex.defaultReps)
                         ),
                         React.createElement('div', { className: 'bg-slate-900/70 rounded-xl p-2.5 text-center' },
-                            React.createElement('p', { className: 'text-[10px] text-slate-400 uppercase' }, '重量'),
-                            React.createElement('p', { className: 'text-lg font-black text-blue-400' }, ex.defaultWeight)
+                            React.createElement('p', { className: 'text-[10px] text-slate-400 uppercase' }, '休息'),
+                            React.createElement('p', { className: 'text-lg font-black text-blue-400' }, ex.rest + '秒')
                         )
                     )
                 ),
@@ -2949,21 +2912,34 @@ function FitnessApp() {
                         : null
                     ),
                     
-                    // ============ 手動模式（次數動作）============
-                    !isExerciseDone && !isTimedExercise(ex.defaultReps) && React.createElement('div', { className: 'bg-slate-800/50 rounded-2xl p-4 text-center' },
-                        React.createElement('p', { className: 'text-xs text-slate-400 mb-2' }, '休息計時器（建議' + (ex.rest) + '秒）'),
-                        React.createElement('p', { className: 'text-4xl font-black font-mono text-cyan-400 mb-3' }, formatTime(timerSeconds)),
-                        React.createElement('div', { className: 'flex gap-2 justify-center' },
-                            React.createElement('button', {
-                                onClick: () => setIsTimerRunning(!isTimerRunning),
-                                className: 'px-6 py-2.5 bg-cyan-500 rounded-xl text-white font-semibold text-sm flex items-center gap-2'
-                            }, React.createElement(Icon, { name: isTimerRunning ? 'pause' : 'play', size: 16 }),
-                               isTimerRunning ? '暫停' : '開始'),
-                            React.createElement('button', {
-                                onClick: () => { setTimerSeconds(0); setIsTimerRunning(false); },
-                                className: 'px-4 py-2.5 bg-slate-700 rounded-xl text-slate-300 font-semibold text-sm'
-                            }, '重置')
-                        )
+                    // ============ 手動模式（次數動作）- 休息計時改為「可選」 ============
+                    !isExerciseDone && !isTimedExercise(ex.defaultReps) && (
+                        timerSeconds > 0 || isTimerRunning ?
+                            // 有在計時：顯示計時器
+                            React.createElement('div', { className: 'bg-slate-800/50 rounded-2xl p-4 text-center' },
+                                React.createElement('p', { className: 'text-xs text-slate-400 mb-2' }, '休息中（建議' + (ex.rest) + '秒）'),
+                                React.createElement('p', { className: 'text-4xl font-black font-mono text-cyan-400 mb-3' }, formatTime(timerSeconds)),
+                                React.createElement('div', { className: 'flex gap-2 justify-center' },
+                                    React.createElement('button', {
+                                        onClick: () => setIsTimerRunning(!isTimerRunning),
+                                        className: 'px-6 py-2.5 bg-cyan-500 rounded-xl text-white font-semibold text-sm flex items-center gap-2'
+                                    }, React.createElement(Icon, { name: isTimerRunning ? 'pause' : 'play', size: 16 }),
+                                       isTimerRunning ? '暫停' : '開始'),
+                                    React.createElement('button', {
+                                        onClick: () => { setTimerSeconds(0); setIsTimerRunning(false); },
+                                        className: 'px-4 py-2.5 bg-slate-700 rounded-xl text-slate-300 font-semibold text-sm'
+                                    }, '結束')
+                                )
+                            )
+                        :
+                            // 無計時：簡單提示 + 可選按鈕
+                            React.createElement('div', { className: 'bg-slate-800/30 border border-slate-700/50 rounded-2xl p-4 text-center' },
+                                React.createElement('p', { className: 'text-xs text-slate-500 mb-2' }, '完成這組後點「第 ' + (setsForExercise.length + 1) + ' 組」記錄次數'),
+                                React.createElement('button', {
+                                    onClick: () => setIsTimerRunning(true),
+                                    className: 'text-xs text-cyan-400 mt-1'
+                                }, '⏱ 想要休息計時？點這裡 (建議' + ex.rest + '秒)')
+                            )
                     ),
                     
                     // ============ 完成狀態 ============
@@ -3062,7 +3038,8 @@ function FitnessApp() {
                             ),
                             Object.entries(dayWorkouts).map(([day, sets]) => {
                                 const template = defaultTemplates[day];
-                                const exercises = customWorkouts[day] || template?.exercises || [];
+                                // 優先用儲存進度時的動作清單；若無則 fallback 到當前的 customWorkouts/template
+                                const exercises = customWorkouts[day] || (template ? template.exercises : []);
                                 return React.createElement('div', { key: day, className: 'bg-slate-800/50 rounded-xl p-3 mt-2' },
                                     React.createElement('p', { className: 'text-sm font-semibold text-cyan-300 flex items-center gap-2 mb-2' },
                                         React.createElement('span', { className: 'text-lg' }, template?.icon),
