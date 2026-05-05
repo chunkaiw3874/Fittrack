@@ -65,7 +65,6 @@ body {
 <div id="root"></div>
 
 <script>
-// 卸載舊的 service worker
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(function(registrations) {
         for(var i = 0; i < registrations.length; i++) {
@@ -113,7 +112,6 @@ var checkInterval = setInterval(function() {
     }
 }, 200);
 
-// 全域錯誤捕獲：如果 React App 出錯，至少隱藏 loading 並顯示錯誤
 window.addEventListener('error', function(e) {
     console.error('App error:', e.message);
     hideLoading();
@@ -129,7 +127,7 @@ window.addEventListener('error', function(e) {
 // FitTrack - Kevin 的健身計畫 PWA
 // ============================================
 
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef } = React;
 
 // ============================================
 // 安全的本地儲存（含錯誤處理）
@@ -225,7 +223,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['平躺在瑜伽墊上，雙腳屈膝踩地', '雙手持啞鈴，手肘貼地約成 45 度角', '推起時呼氣，啞鈴向上推至胸口正上方', '下放時吸氣，控制速度，手肘下放至略低於肩'],
-        notes: ['不要鎖死手肘', '下放速度比推起慢一倍', '腰不要拱起']
+        notes: ['不要鎖死手肘', '下放速度比推起慢一倍', '腰不要拱起'],
+        mindMuscleScore: 9.0
     },
     '啞鈴上斜推舉': {
         englishName: 'incline dumbbell press floor',
@@ -237,7 +236,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['靠牆坐姿，身體與牆面成 30-45 度角', '雙手持啞鈴於肩膀兩側', '向上推起，啞鈴匯集於正上方', '緩慢下放至原位'],
-        notes: ['上半身保持斜角度', '核心收緊穩定軀幹', '不要聳肩']
+        notes: ['上半身保持斜角度', '核心收緊穩定軀幹', '不要聳肩'],
+        mindMuscleScore: 8.5
     },
     '伏地挺身': {
         englishName: 'pushup proper form',
@@ -249,7 +249,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['雙手撐地略寬於肩，雙腳併攏', '身體呈一直線，從頭到腳跟', '下降至胸部離地約一個拳頭', '推起時呼氣，回到起始位置'],
-        notes: ['臀部不要翹高或塌下', '手肘約 45 度角', '頸椎自然位置']
+        notes: ['臀部不要翹高或塌下', '手肘約 45 度角', '頸椎自然位置'],
+        mindMuscleScore: 7.0
     },
     '寬距伏地挺身': {
         englishName: 'wide pushup',
@@ -261,7 +262,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['雙手撐地，距離比肩寬 1.5 倍', '下降時手肘外展', '感受胸部被拉伸', '推起回到起始位置'],
-        notes: ['不要過寬以免肩膀受傷', '核心保持收緊', '動作緩慢控制']
+        notes: ['不要過寬以免肩膀受傷', '核心保持收緊', '動作緩慢控制'],
+        mindMuscleScore: 8.5
     },
     '鑽石伏地挺身': {
         englishName: 'diamond pushup',
@@ -273,7 +275,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['雙手在胸前相觸，拇指食指形成菱形', '下降時手肘貼緊身體', '胸部碰觸到雙手位置', '推起回到起始位置'],
-        notes: ['進階動作，先掌握標準伏地挺身', '手肘容易過度伸直', '感到肘關節不適立刻停止']
+        notes: ['進階動作，先掌握標準伏地挺身', '手肘容易過度伸直', '感到肘關節不適立刻停止'],
+        mindMuscleScore: 6.5
     },
     '腳抬高伏地挺身': {
         englishName: 'decline pushup',
@@ -285,7 +288,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['雙腳放在床、樓梯或穩固平面上', '雙手撐地，身體成一直線', '下降至胸部離地', '推起回到起始位置'],
-        notes: ['抬腳高度約 30-50 公分', '腰部不要塌下', '核心持續收緊']
+        notes: ['抬腳高度約 30-50 公分', '腰部不要塌下', '核心持續收緊'],
+        mindMuscleScore: 8.0
     },
     '跪姿伏地挺身': {
         englishName: 'knee pushup',
@@ -297,7 +301,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['雙膝跪地，雙手撐於肩寬', '從膝蓋到頭部成一直線', '下降至胸部離地', '推起回到起始位置'],
-        notes: ['初學者首選', '不要塌腰', '逐步進階到標準伏地挺身']
+        notes: ['初學者首選', '不要塌腰', '逐步進階到標準伏地挺身'],
+        mindMuscleScore: 5.0
     },
     '啞鈴飛鳥': {
         englishName: 'dumbbell chest fly floor',
@@ -309,7 +314,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['平躺在瑜伽墊上，雙手持啞鈴向上伸直', '手肘微彎不變，雙手向兩側緩緩打開', '至感受胸部拉伸時停止', '收縮胸肌將啞鈴匯集回起始位置'],
-        notes: ['手肘保持微彎', '使用較輕的重量', '感受胸部用力而非手臂']
+        notes: ['手肘保持微彎', '使用較輕的重量', '感受胸部用力而非手臂'],
+        mindMuscleScore: 9.5
     },
     '阻力帶夾胸': {
         englishName: 'resistance band chest fly',
@@ -321,7 +327,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['阻力帶繞過背後，雙手握住兩端', '雙臂張開向兩側', '雙臂在胸前匯集', '緩慢回到起始位置'],
-        notes: ['阻力帶位置要固定', '動作要慢', '感受胸肌用力']
+        notes: ['阻力帶位置要固定', '動作要慢', '感受胸肌用力'],
+        mindMuscleScore: 9.0
     },
     '阻力帶推胸': {
         englishName: 'resistance band chest press',
@@ -333,7 +340,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['阻力帶繞過背後，雙手握住兩端在胸前', '雙臂向前推出', '至完全伸直但不鎖死手肘', '緩慢回到起始位置'],
-        notes: ['核心收緊保持穩定', '不要鎖死手肘', '兩側用力均勻']
+        notes: ['核心收緊保持穩定', '不要鎖死手肘', '兩側用力均勻'],
+        mindMuscleScore: 7.5
     },
     '蜘蛛人伏地挺身': {
         englishName: 'spiderman pushup',
@@ -345,7 +353,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['伏地挺身起始姿勢', '下降同時將右膝拉向右肘', '推起時將腿放回', '下一下換邊'],
-        notes: ['核心要持續收緊', '進階動作', '可先做標準伏地挺身']
+        notes: ['核心要持續收緊', '進階動作', '可先做標準伏地挺身'],
+        mindMuscleScore: 7.5
     },
     '單臂伏地挺身': {
         englishName: 'one arm pushup',
@@ -357,7 +366,8 @@ const exerciseDB = {
         defaultRest: 90,
         sets: 3,
         howTo: ['雙腳張開比肩寬', '一手撐地，另一手放於背後', '緩慢下降', '推起回到起始位置'],
-        notes: ['高難度動作，需有基礎力量', '核心穩定最重要', '初學者勿嘗試']
+        notes: ['高難度動作，需有基礎力量', '核心穩定最重要', '初學者勿嘗試'],
+        mindMuscleScore: 7.0
     },
     '啞鈴划船': {
         englishName: 'dumbbell row bent over',
@@ -369,7 +379,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['雙腳與肩同寬站立，膝蓋微彎', '上身前傾約 45 度，背部打直', '雙手持啞鈴自然下垂', '將啞鈴拉向腰部兩側，感受背部用力'],
-        notes: ['背部全程保持平直', '不要拱腰', '頸部與背成一直線']
+        notes: ['背部全程保持平直', '不要拱腰', '頸部與背成一直線'],
+        mindMuscleScore: 9.0
     },
     '啞鈴單臂划船': {
         englishName: 'one arm dumbbell row',
@@ -381,7 +392,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['單腳跪地（如右手做動作則左膝跪地）', '左手撐在床或地上支撐，背部打平', '右手持啞鈴', '將啞鈴拉向腰部，肘部緊貼身體'],
-        notes: ['不要扭轉軀幹', '背部保持平直', '專注背肌用力']
+        notes: ['不要扭轉軀幹', '背部保持平直', '專注背肌用力'],
+        mindMuscleScore: 9.5
     },
     '啞鈴反向飛鳥': {
         englishName: 'reverse dumbbell fly',
@@ -393,7 +405,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['上身前傾約 45 度，背部打直', '雙手持啞鈴於身體前方', '雙臂向兩側打開，肩胛骨夾緊', '緩慢回到起始位置'],
-        notes: ['用較輕的重量', '感受上背部用力', '不要聳肩']
+        notes: ['用較輕的重量', '感受上背部用力', '不要聳肩'],
+        mindMuscleScore: 8.5
     },
     '啞鈴硬舉': {
         englishName: 'romanian deadlift dumbbell',
@@ -405,7 +418,8 @@ const exerciseDB = {
         defaultRest: 75,
         sets: 3,
         howTo: ['雙腳與肩同寬，雙手持啞鈴於身前', '臀部向後推，膝蓋微彎', '保持背部平直，啞鈴沿著大腿前側下滑', '感受腿後側拉伸後挺身回到起始位置'],
-        notes: ['背部全程保持平直', '不是彎腰，是髖關節折疊', '感到腰痛立刻停止']
+        notes: ['背部全程保持平直', '不是彎腰，是髖關節折疊', '感到腰痛立刻停止'],
+        mindMuscleScore: 8.5
     },
     '阻力帶划船': {
         englishName: 'resistance band row',
@@ -417,7 +431,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['阻力帶固定於門把或樹幹（與胸同高）', '坐在地上或站立，雙手握住阻力帶兩端', '將阻力帶拉向腹部，肘部緊貼身體', '緩慢回到起始位置'],
-        notes: ['挺胸，肩胛骨夾緊', '不要拱背', '感受背部用力']
+        notes: ['挺胸，肩胛骨夾緊', '不要拱背', '感受背部用力'],
+        mindMuscleScore: 8.0
     },
     '阻力帶下拉': {
         englishName: 'resistance band lat pulldown',
@@ -429,7 +444,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['阻力帶固定於高處（門框上方）', '坐姿或跪姿，雙手握住阻力帶', '將阻力帶向下拉至胸口高度', '感受闊背肌用力'],
-        notes: ['挺胸保持背部弓起', '不要靠手臂發力', '專注於背部下緣']
+        notes: ['挺胸保持背部弓起', '不要靠手臂發力', '專注於背部下緣'],
+        mindMuscleScore: 9.0
     },
     '超人式': {
         englishName: 'superman exercise',
@@ -441,7 +457,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['俯臥在瑜伽墊上，雙臂前伸', '同時抬起雙手、雙腿和胸部', '在最高點停留 1-2 秒', '緩慢放下'],
-        notes: ['頸椎保持中立', '抬到能力範圍即可', '不要猛抬猛放']
+        notes: ['頸椎保持中立', '抬到能力範圍即可', '不要猛抬猛放'],
+        mindMuscleScore: 6.5
     },
     '反向划船（地板）': {
         englishName: 'inverted row floor',
@@ -453,7 +470,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['兩個啞鈴放在地上，距離與肩同寬', '俯臥撐姿勢，雙手握住啞鈴', '將身體拉起，胸部朝向啞鈴', '緩慢下降至原位'],
-        notes: ['核心收緊穩定軀幹', '肩胛骨夾緊', '需要可六角型的啞鈴']
+        notes: ['核心收緊穩定軀幹', '肩胛骨夾緊', '需要可六角型的啞鈴'],
+        mindMuscleScore: 8.5
     },
     '啞鈴 W 字': {
         englishName: 'dumbbell W raise',
@@ -465,7 +483,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['俯臥在瑜伽墊上，雙手持輕啞鈴', '手肘彎曲，形成 W 字型', '抬起雙臂，肩胛骨夾緊', '保持 1 秒後放下'],
-        notes: ['用很輕的重量（1-3kg）', '專注上背肌肉收縮', '不要猛抬']
+        notes: ['用很輕的重量（1-3kg）', '專注上背肌肉收縮', '不要猛抬'],
+        mindMuscleScore: 7.5
     },
     '啞鈴聳肩': {
         englishName: 'dumbbell shrug',
@@ -477,7 +496,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['雙腳與肩同寬站立，雙手持啞鈴自然下垂', '雙肩向上聳起，朝耳朵方向', '在最高點停留 1 秒', '緩慢放下'],
-        notes: ['不要前後旋轉肩膀', '純上下動作', '感受斜方肌用力']
+        notes: ['不要前後旋轉肩膀', '純上下動作', '感受斜方肌用力'],
+        mindMuscleScore: 7.5
     },
     'YTW 三式': {
         englishName: 'YTW shoulder exercise',
@@ -489,7 +509,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['俯臥姿勢，雙手持輕啞鈴', 'Y 字：雙臂前伸成 Y 字抬起', 'T 字：雙臂側伸成 T 字抬起', 'W 字：手肘彎曲成 W 字抬起'],
-        notes: ['用 1-2kg 啞鈴即可', '每個字母都要有意識停留', '上背用力主導']
+        notes: ['用 1-2kg 啞鈴即可', '每個字母都要有意識停留', '上背用力主導'],
+        mindMuscleScore: 7.0
     },
     '阻力帶 Pull Apart': {
         englishName: 'resistance band pull apart',
@@ -501,7 +522,8 @@ const exerciseDB = {
         defaultRest: 30,
         sets: 3,
         howTo: ['雙手持阻力帶於胸前', '雙臂打直', '雙臂向兩側打開，將阻力帶拉開', '緩慢回到起始位置'],
-        notes: ['熱身的好動作', '肩胛骨主導動作', '輕鬆操作']
+        notes: ['熱身的好動作', '肩胛骨主導動作', '輕鬆操作'],
+        mindMuscleScore: 7.5
     },
     '貓牛伸展': {
         englishName: 'cat cow stretch',
@@ -513,7 +535,8 @@ const exerciseDB = {
         defaultRest: 30,
         sets: 2,
         howTo: ['四足跪姿，手在肩下，膝在髖下', '貓式：拱背，下巴貼胸', '牛式：腰背下凹，抬頭', '緩慢交替'],
-        notes: ['動作要慢', '搭配呼吸', '感到背部受傷立刻停止']
+        notes: ['動作要慢', '搭配呼吸', '感到背部受傷立刻停止'],
+        mindMuscleScore: 6.0
     },
     '阻力帶 Face Pull': {
         englishName: 'resistance band face pull',
@@ -525,7 +548,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['阻力帶固定於與肩同高', '雙手握住阻力帶兩端', '向後拉，雙手分開朝臉部兩側', '感受上背和後三角肌用力'],
-        notes: ['對改善圓肩很有幫助', '不要聳肩', '日常可多做']
+        notes: ['對改善圓肩很有幫助', '不要聳肩', '日常可多做'],
+        mindMuscleScore: 8.5
     },
     '門口拉': {
         englishName: 'doorway row',
@@ -537,7 +561,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['站立面對堅固門框', '雙手抓住門框兩側', '腳伸前，身體向後傾斜', '用背部力量將身體拉向門框'],
-        notes: ['確保門框堅固', '雙腳站穩', '用背肌不要用手臂']
+        notes: ['確保門框堅固', '雙腳站穩', '用背肌不要用手臂'],
+        mindMuscleScore: 8.0
     },
     '啞鈴肩推': {
         englishName: 'dumbbell shoulder press standing',
@@ -549,7 +574,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['雙腳與肩同寬站立，核心收緊', '雙手持啞鈴於肩膀兩側', '向上推起至頭頂上方', '緩慢回到起始位置'],
-        notes: ['不要鎖死手肘', '腰部不要過度後仰', '核心持續收緊']
+        notes: ['不要鎖死手肘', '腰部不要過度後仰', '核心持續收緊'],
+        mindMuscleScore: 8.5
     },
     '啞鈴側平舉': {
         englishName: 'dumbbell lateral raise',
@@ -561,7 +587,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['雙腳與肩同寬，雙手持啞鈴於身體兩側', '手肘微彎', '側舉至雙臂與地面平行', '緩慢放下'],
-        notes: ['不要聳肩', '用較輕的重量', '感受肩膀中束用力']
+        notes: ['不要聳肩', '用較輕的重量', '感受肩膀中束用力'],
+        mindMuscleScore: 9.5
     },
     '啞鈴前平舉': {
         englishName: 'dumbbell front raise',
@@ -573,7 +600,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['雙腳與肩同寬，雙手持啞鈴於大腿前方', '手肘微彎', '前舉至與肩同高', '緩慢放下'],
-        notes: ['不要超過肩高', '不要靠擺動', '可以單手交替做']
+        notes: ['不要超過肩高', '不要靠擺動', '可以單手交替做'],
+        mindMuscleScore: 8.0
     },
     '阻力帶肩推': {
         englishName: 'resistance band shoulder press',
@@ -585,7 +613,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['阻力帶踩在腳下，雙手握住兩端', '雙手舉至肩膀位置', '向上推起至頭頂', '緩慢回到起始位置'],
-        notes: ['核心收緊', '不要拱腰', '阻力帶要踩穩']
+        notes: ['核心收緊', '不要拱腰', '阻力帶要踩穩'],
+        mindMuscleScore: 8.0
     },
     '阻力帶側平舉': {
         englishName: 'resistance band lateral raise',
@@ -597,7 +626,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['阻力帶踩在腳下，雙手握住', '雙臂向兩側舉起', '至與肩同高', '緩慢放下'],
-        notes: ['手肘微彎', '不要聳肩', '感受肩部用力']
+        notes: ['手肘微彎', '不要聳肩', '感受肩部用力'],
+        mindMuscleScore: 8.5
     },
     '啞鈴俯身側平舉': {
         englishName: 'bent over dumbbell lateral raise',
@@ -609,7 +639,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['上身前傾約 45 度', '雙手持啞鈴自然下垂', '手肘微彎，雙臂側向後抬起', '緩慢放下'],
-        notes: ['用較輕的重量', '感受後三角肌', '背部要平直']
+        notes: ['用較輕的重量', '感受後三角肌', '背部要平直'],
+        mindMuscleScore: 9.0
     },
     '阿諾肩推': {
         englishName: 'arnold press',
@@ -621,7 +652,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['雙手持啞鈴於胸前，掌心朝向自己', '推起時旋轉手腕', '至頂點時掌心朝外', '反向回到起始位置'],
-        notes: ['進階動作', '注意肩膀靈活度', '可先掌握標準肩推']
+        notes: ['進階動作', '注意肩膀靈活度', '可先掌握標準肩推'],
+        mindMuscleScore: 8.0
     },
     '啞鈴繞圈': {
         englishName: 'dumbbell shoulder circles',
@@ -633,7 +665,8 @@ const exerciseDB = {
         defaultRest: 30,
         sets: 2,
         howTo: ['雙手持輕啞鈴，雙臂下垂', '緩慢向前繞圈', '完成後反向繞圈', '保持手臂打直'],
-        notes: ['熱身用，重量輕', '動作要慢', '感到不適立刻停止']
+        notes: ['熱身用，重量輕', '動作要慢', '感到不適立刻停止'],
+        mindMuscleScore: 5.5
     },
     '俯臥推舉': {
         englishName: 'pike pushup',
@@ -645,7 +678,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['俯臥撐姿勢，臀部抬高呈 V 字', '雙手在肩膀正下方', '頭朝下，緩慢下降', '推起回到 V 字位置'],
-        notes: ['進階肩膀動作', '可作為倒立伏地挺身的入門', '注意手腕']
+        notes: ['進階肩膀動作', '可作為倒立伏地挺身的入門', '注意手腕'],
+        mindMuscleScore: 7.5
     },
     '阻力帶 Y 字': {
         englishName: 'resistance band Y raise',
@@ -657,7 +691,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['雙腳踩住阻力帶，雙手握住兩端', '雙手交叉於身前', '向斜上方舉起，形成 Y 字', '緩慢放下'],
-        notes: ['幫助改善圓肩', '感受上背和肩用力', '不要聳肩']
+        notes: ['幫助改善圓肩', '感受上背和肩用力', '不要聳肩'],
+        mindMuscleScore: 7.5
     },
     '啞鈴二頭彎舉': {
         englishName: 'dumbbell bicep curl',
@@ -669,7 +704,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['雙腳與肩同寬，雙手持啞鈴於身體兩側', '掌心朝前', '彎曲手肘，將啞鈴向上彎舉', '緩慢放下'],
-        notes: ['不要靠擺動身體借力', '專注二頭肌用力', '完整下放']
+        notes: ['不要靠擺動身體借力', '專注二頭肌用力', '完整下放'],
+        mindMuscleScore: 9.0
     },
     '啞鈴錘式彎舉': {
         englishName: 'hammer curl',
@@ -681,7 +717,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['雙手持啞鈴，掌心相對', '手腕保持中立位', '彎曲手肘將啞鈴舉起', '緩慢放下'],
-        notes: ['訓練前臂同時也練二頭', '不要前後擺動', '動作要慢']
+        notes: ['訓練前臂同時也練二頭', '不要前後擺動', '動作要慢'],
+        mindMuscleScore: 8.5
     },
     '啞鈴三頭伸展': {
         englishName: 'dumbbell tricep extension overhead',
@@ -693,7 +730,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['雙手共持一個啞鈴，舉於頭頂上方', '手肘指向天花板', '彎曲手肘將啞鈴下降至腦後', '推起回到起始位置'],
-        notes: ['手肘要固定不動', '感到肘關節不適立刻停止', '用較輕的重量']
+        notes: ['手肘要固定不動', '感到肘關節不適立刻停止', '用較輕的重量'],
+        mindMuscleScore: 9.0
     },
     '啞鈴三頭俯身': {
         englishName: 'tricep kickback dumbbell',
@@ -705,7 +743,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['上身前傾約 45 度，背部打直', '上臂貼緊身體，手肘彎曲 90 度', '伸直手臂，將啞鈴向後推', '緩慢回到起始位置'],
-        notes: ['上臂保持不動', '專注三頭肌伸展', '用較輕的重量']
+        notes: ['上臂保持不動', '專注三頭肌伸展', '用較輕的重量'],
+        mindMuscleScore: 9.0
     },
     '阻力帶二頭彎舉': {
         englishName: 'resistance band bicep curl',
@@ -717,7 +756,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['雙腳踩住阻力帶，雙手握住兩端', '掌心朝前', '彎曲手肘向上拉', '緩慢放下'],
-        notes: ['手肘固定不動', '感受二頭收縮', '腳要踩穩']
+        notes: ['手肘固定不動', '感受二頭收縮', '腳要踩穩'],
+        mindMuscleScore: 8.0
     },
     '阻力帶三頭下拉': {
         englishName: 'resistance band tricep pushdown',
@@ -729,7 +769,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['阻力帶固定於高處', '雙手握住阻力帶於胸前', '手肘貼緊身體，向下伸直手臂', '緩慢回到起始位置'],
-        notes: ['上臂固定', '手腕保持中立', '感受三頭收縮']
+        notes: ['上臂固定', '手腕保持中立', '感受三頭收縮'],
+        mindMuscleScore: 8.5
     },
     '啞鈴 21 下': {
         englishName: 'dumbbell 21s curl',
@@ -741,7 +782,8 @@ const exerciseDB = {
         defaultRest: 90,
         sets: 3,
         howTo: ['前 7 下：彎舉至中段 (90 度)', '中 7 下：從中段彎舉至頂端', '後 7 下：完整全幅度彎舉', '不休息一次完成 21 下'],
-        notes: ['用較輕的重量', '燃燒感很強', '進階訓練法']
+        notes: ['用較輕的重量', '燃燒感很強', '進階訓練法'],
+        mindMuscleScore: 9.0
     },
     '反握啞鈴彎舉': {
         englishName: 'reverse grip dumbbell curl',
@@ -753,7 +795,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['雙手持啞鈴，掌心朝後', '彎曲手肘將啞鈴舉起', '保持掌心朝後', '緩慢放下'],
-        notes: ['訓練前臂', '用較輕的重量', '手腕保持中立']
+        notes: ['訓練前臂', '用較輕的重量', '手腕保持中立'],
+        mindMuscleScore: 7.5
     },
     '啞鈴集中彎舉': {
         englishName: 'concentration curl',
@@ -765,7 +808,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['坐在地上或低台，膝蓋打開', '一手肘抵在大腿內側', '彎舉啞鈴至肩膀', '緩慢放下'],
-        notes: ['手肘固定', '專注二頭肌孤立用力', '用較輕的重量']
+        notes: ['手肘固定', '專注二頭肌孤立用力', '用較輕的重量'],
+        mindMuscleScore: 9.5
     },
     '啞鈴握力訓練': {
         englishName: 'dumbbell wrist curl',
@@ -777,7 +821,8 @@ const exerciseDB = {
         defaultRest: 30,
         sets: 3,
         howTo: ['坐姿或跪姿，前臂抵在大腿上', '掌心朝上，啞鈴在手心', '只用手腕力量上下捲動', '緩慢控制動作'],
-        notes: ['訓練前臂和握力', '用很輕的重量', '可掌心朝下做反向練']
+        notes: ['訓練前臂和握力', '用很輕的重量', '可掌心朝下做反向練'],
+        mindMuscleScore: 6.0
     },
     '啞鈴深蹲': {
         englishName: 'dumbbell squat',
@@ -789,7 +834,8 @@ const exerciseDB = {
         defaultRest: 75,
         sets: 3,
         howTo: ['雙腳與肩同寬，腳尖微微外八', '雙手持啞鈴於身體兩側', '臀部後坐，膝蓋彎曲', '下蹲至大腿與地面平行，挺身回到起始位置'],
-        notes: ['膝蓋與腳尖同方向', '背部保持直立', '感到膝蓋痛立刻停止']
+        notes: ['膝蓋與腳尖同方向', '背部保持直立', '感到膝蓋痛立刻停止'],
+        mindMuscleScore: 8.5
     },
     '啞鈴酒杯式深蹲': {
         englishName: 'goblet squat',
@@ -801,7 +847,8 @@ const exerciseDB = {
         defaultRest: 75,
         sets: 3,
         howTo: ['雙手抱一個啞鈴於胸前', '雙腳比肩稍寬，腳尖微微外八', '深蹲下至大腿低於水平', '挺身回到起始位置'],
-        notes: ['初學者首選深蹲變化', '保持挺胸', '膝蓋穩定不晃動']
+        notes: ['初學者首選深蹲變化', '保持挺胸', '膝蓋穩定不晃動'],
+        mindMuscleScore: 8.5
     },
     '徒手深蹲': {
         englishName: 'bodyweight squat',
@@ -813,7 +860,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['雙腳與肩同寬', '雙手向前平舉', '臀部後坐下蹲', '挺身回到起始位置'],
-        notes: ['膝蓋與腳尖同方向', '深蹲至大腿水平', '腳跟貼地']
+        notes: ['膝蓋與腳尖同方向', '深蹲至大腿水平', '腳跟貼地'],
+        mindMuscleScore: 6.5
     },
     '啞鈴弓步蹲': {
         englishName: 'dumbbell lunge',
@@ -825,7 +873,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['雙手持啞鈴於身體兩側', '一腳向前跨出大步', '前腳膝蓋彎成 90 度，後膝幾乎觸地', '推回起始位置，換腿'],
-        notes: ['前膝不要超過腳尖', '上身挺直', '兩腳交替做或單腿做完換邊']
+        notes: ['前膝不要超過腳尖', '上身挺直', '兩腳交替做或單腿做完換邊'],
+        mindMuscleScore: 9.0
     },
     '啞鈴保加利亞分腿蹲': {
         englishName: 'bulgarian split squat',
@@ -837,7 +886,8 @@ const exerciseDB = {
         defaultRest: 75,
         sets: 3,
         howTo: ['一腳放在床上或低矮平台上（後腳）', '另一腳前跨一大步', '雙手持啞鈴於身體兩側', '下蹲至前腿大腿與地面平行'],
-        notes: ['前腳大腿與小腿成 90 度', '需要椅子但你沒有，可用床或低台', '用較輕的重量開始']
+        notes: ['前腳大腿與小腿成 90 度', '需要椅子但你沒有，可用床或低台', '用較輕的重量開始'],
+        mindMuscleScore: 9.5
     },
     '啞鈴側弓步': {
         englishName: 'lateral lunge dumbbell',
@@ -849,7 +899,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['雙腳並攏站立', '一腳向側方跨出', '臀部後坐，跨出腳膝蓋彎曲', '推回起始位置，換邊'],
-        notes: ['訓練側面腿肌', '另一腿伸直', '感受大腿內側拉伸']
+        notes: ['訓練側面腿肌', '另一腿伸直', '感受大腿內側拉伸'],
+        mindMuscleScore: 8.5
     },
     '啞鈴後弓步': {
         englishName: 'reverse lunge dumbbell',
@@ -861,7 +912,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['雙手持啞鈴於身體兩側', '一腳向後跨出大步', '下蹲至前腿大腿水平', '推回起始位置，換邊'],
-        notes: ['對膝蓋友善的弓步變化', '上身挺直', '前膝在腳跟正上方']
+        notes: ['對膝蓋友善的弓步變化', '上身挺直', '前膝在腳跟正上方'],
+        mindMuscleScore: 9.0
     },
     '啞鈴羅馬尼亞硬舉': {
         englishName: 'romanian deadlift dumbbell',
@@ -873,7 +925,8 @@ const exerciseDB = {
         defaultRest: 75,
         sets: 3,
         howTo: ['雙腳與肩同寬，雙手持啞鈴於身前', '臀部向後推，膝蓋微彎', '保持背部平直，啞鈴沿著大腿前側下滑', '感受腿後側拉伸後挺身回到起始位置'],
-        notes: ['背部全程保持平直', '不是彎腰，是髖關節折疊', '膝蓋微彎不變']
+        notes: ['背部全程保持平直', '不是彎腰，是髖關節折疊', '膝蓋微彎不變'],
+        mindMuscleScore: 9.0
     },
     '單腿羅馬尼亞硬舉': {
         englishName: 'single leg romanian deadlift',
@@ -885,7 +938,8 @@ const exerciseDB = {
         defaultRest: 75,
         sets: 3,
         howTo: ['單手持啞鈴，相對的腳站立', '另一腳向後抬起', '上身前傾，啞鈴下放', '回到起始位置'],
-        notes: ['平衡很重要，可扶東西', '保持身體成一直線', '訓練核心和臀']
+        notes: ['平衡很重要，可扶東西', '保持身體成一直線', '訓練核心和臀'],
+        mindMuscleScore: 9.5
     },
     '啞鈴箱深蹲': {
         englishName: 'dumbbell box squat',
@@ -897,7 +951,8 @@ const exerciseDB = {
         defaultRest: 75,
         sets: 3,
         howTo: ['床或低矮平台後站立', '雙手持啞鈴於身前', '深蹲至臀部碰床面', '不停留立刻挺身'],
-        notes: ['控制下蹲速度', '坐到床面但不放鬆', '幫助練習深度']
+        notes: ['控制下蹲速度', '坐到床面但不放鬆', '幫助練習深度'],
+        mindMuscleScore: 8.0
     },
     '小腿提踵': {
         englishName: 'calf raise dumbbell',
@@ -909,7 +964,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['雙腳與肩同寬站立', '雙手持啞鈴於身體兩側', '腳尖踮起，提起腳跟', '在最高點停留 1 秒後緩慢放下'],
-        notes: ['可單腿做增加難度', '腳尖完全踮起', '感受小腿用力']
+        notes: ['可單腿做增加難度', '腳尖完全踮起', '感受小腿用力'],
+        mindMuscleScore: 8.5
     },
     '坐姿小腿提踵': {
         englishName: 'seated calf raise dumbbell',
@@ -921,7 +977,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['坐在床邊或低矮平台', '雙手持啞鈴放在膝蓋上', '腳尖踮起', '緩慢放下'],
-        notes: ['訓練比目魚肌（小腿深層）', '動作要慢', '感受小腿燃燒']
+        notes: ['訓練比目魚肌（小腿深層）', '動作要慢', '感受小腿燃燒'],
+        mindMuscleScore: 8.0
     },
     '阻力帶深蹲': {
         englishName: 'resistance band squat',
@@ -933,7 +990,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['阻力帶踩在腳下，雙手握住兩端於肩膀', '深蹲下', '挺身回到起始位置', '阻力帶提供持續阻力'],
-        notes: ['膝蓋與腳尖同方向', '阻力帶要踩穩', '完整深度']
+        notes: ['膝蓋與腳尖同方向', '阻力帶要踩穩', '完整深度'],
+        mindMuscleScore: 7.5
     },
     '阻力帶蚌殻式': {
         englishName: 'resistance band clamshell',
@@ -945,7 +1003,8 @@ const exerciseDB = {
         defaultRest: 30,
         sets: 3,
         howTo: ['阻力帶套在大腿上方', '側躺，膝蓋彎曲 90 度', '腳跟併攏，膝蓋向上打開', '緩慢回到起始位置'],
-        notes: ['訓練臀中肌', '上身保持不動', '對改善髖部穩定有幫助']
+        notes: ['訓練臀中肌', '上身保持不動', '對改善髖部穩定有幫助'],
+        mindMuscleScore: 8.0
     },
     '阻力帶側走': {
         englishName: 'resistance band lateral walk',
@@ -957,7 +1016,8 @@ const exerciseDB = {
         defaultRest: 30,
         sets: 3,
         howTo: ['阻力帶套在腳踝或膝蓋上方', '微蹲姿勢', '側向跨步走', '保持阻力帶張力'],
-        notes: ['臀中肌訓練', '步幅要小', '上身穩定不晃動']
+        notes: ['臀中肌訓練', '步幅要小', '上身穩定不晃動'],
+        mindMuscleScore: 7.5
     },
     '臀橋': {
         englishName: 'glute bridge',
@@ -969,7 +1029,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['平躺，雙膝彎曲，腳掌貼地', '雙臂放於身體兩側', '收緊臀部，將髖部向上推起', '在頂點停留 1 秒後緩慢放下'],
-        notes: ['動作頂點臀部要全力收緊', '腰部不要過度後仰', '感受臀部用力']
+        notes: ['動作頂點臀部要全力收緊', '腰部不要過度後仰', '感受臀部用力'],
+        mindMuscleScore: 8.5
     },
     '單腿臀橋': {
         englishName: 'single leg glute bridge',
@@ -981,7 +1042,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['平躺，一腿彎曲腳掌貼地', '另一腿伸直', '收緊臀部將髖部向上推起', '緩慢放下'],
-        notes: ['髖部不要歪斜', '保持骨盆水平', '進階版臀橋']
+        notes: ['髖部不要歪斜', '保持骨盆水平', '進階版臀橋'],
+        mindMuscleScore: 9.0
     },
     '啞鈴臀橋': {
         englishName: 'dumbbell hip thrust',
@@ -993,7 +1055,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['平躺，雙膝彎曲，腳掌貼地', '一個啞鈴放在髖部上', '雙手扶住啞鈴', '收緊臀部，將髖部向上推起'],
-        notes: ['啞鈴位置要穩固', '頂點臀部全力收緊', '腰不要過度後仰']
+        notes: ['啞鈴位置要穩固', '頂點臀部全力收緊', '腰不要過度後仰'],
+        mindMuscleScore: 9.5
     },
     '啞鈴相撲深蹲': {
         englishName: 'dumbbell sumo squat',
@@ -1005,7 +1068,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['雙腳張開比肩寬很多，腳尖外八', '雙手共持一個啞鈴於身前', '深蹲下至大腿水平', '挺身回到起始位置'],
-        notes: ['更專注於臀部和大腿內側', '膝蓋與腳尖同方向', '深度足夠']
+        notes: ['更專注於臀部和大腿內側', '膝蓋與腳尖同方向', '深度足夠'],
+        mindMuscleScore: 9.0
     },
     '驢踢': {
         englishName: 'donkey kick',
@@ -1017,7 +1081,8 @@ const exerciseDB = {
         defaultRest: 30,
         sets: 3,
         howTo: ['四足跪姿', '一腿膝蓋彎曲 90 度', '腳掌朝天花板向上踢', '感受臀部用力'],
-        notes: ['不要拱腰', '核心收緊', '臀部主導動作']
+        notes: ['不要拱腰', '核心收緊', '臀部主導動作'],
+        mindMuscleScore: 7.5
     },
     '消防栓式': {
         englishName: 'fire hydrant',
@@ -1029,7 +1094,8 @@ const exerciseDB = {
         defaultRest: 30,
         sets: 3,
         howTo: ['四足跪姿', '一腿保持彎曲 90 度', '向側上方抬起膝蓋', '緩慢放下'],
-        notes: ['訓練臀中肌', '保持骨盆水平', '不要扭轉軀幹']
+        notes: ['訓練臀中肌', '保持骨盆水平', '不要扭轉軀幹'],
+        mindMuscleScore: 7.5
     },
     '阻力帶臀橋': {
         englishName: 'resistance band glute bridge',
@@ -1041,7 +1107,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['平躺，阻力帶套在大腿上方', '雙膝彎曲，腳掌貼地', '推起髖部同時膝蓋向外推', '緩慢放下'],
-        notes: ['雙重刺激臀部和臀中肌', '頂點時膝蓋要分開', '阻力帶位置正確']
+        notes: ['雙重刺激臀部和臀中肌', '頂點時膝蓋要分開', '阻力帶位置正確'],
+        mindMuscleScore: 9.0
     },
     '青蛙泵': {
         englishName: 'frog pump',
@@ -1053,7 +1120,8 @@ const exerciseDB = {
         defaultRest: 30,
         sets: 3,
         howTo: ['平躺，膝蓋向兩側打開', '雙腳掌貼合', '推起髖部', '緩慢放下'],
-        notes: ['更孤立臀部', '臀部用力到極致', '可作為臀部熱身或結尾燃燒']
+        notes: ['更孤立臀部', '臀部用力到極致', '可作為臀部熱身或結尾燃燒'],
+        mindMuscleScore: 8.5
     },
     '平板支撐': {
         englishName: 'plank proper form',
@@ -1065,7 +1133,8 @@ const exerciseDB = {
         defaultRest: 30,
         sets: 3,
         howTo: ['俯臥撐姿勢，前臂著地', '手肘在肩膀正下方', '身體成一直線', '保持姿勢，呼吸正常'],
-        notes: ['臀部不要翹高或塌下', '核心收緊', '感到腰痛立刻停止']
+        notes: ['臀部不要翹高或塌下', '核心收緊', '感到腰痛立刻停止'],
+        mindMuscleScore: 7.5
     },
     '側平板': {
         englishName: 'side plank',
@@ -1077,7 +1146,8 @@ const exerciseDB = {
         defaultRest: 30,
         sets: 3,
         howTo: ['側躺，前臂著地', '手肘在肩膀正下方', '抬起髖部，身體成一直線', '保持姿勢'],
-        notes: ['髖部不要下垂', '單側做完換邊', '頸椎中立']
+        notes: ['髖部不要下垂', '單側做完換邊', '頸椎中立'],
+        mindMuscleScore: 8.0
     },
     '平板抬腿': {
         englishName: 'plank with leg lift',
@@ -1089,7 +1159,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['平板支撐姿勢', '輪流抬起一腿', '保持身體穩定', '緩慢交替'],
-        notes: ['髖部不要左右搖晃', '核心持續收緊', '進階平板動作']
+        notes: ['髖部不要左右搖晃', '核心持續收緊', '進階平板動作'],
+        mindMuscleScore: 8.5
     },
     '捲腹': {
         englishName: 'crunch proper form',
@@ -1101,7 +1172,8 @@ const exerciseDB = {
         defaultRest: 30,
         sets: 3,
         howTo: ['平躺，雙膝彎曲腳掌貼地', '雙手輕扶頭部兩側', '捲起上半身，肩胛骨離地', '緩慢放下'],
-        notes: ['不要用手拉脖子', '腰部貼地', '感受腹部收縮']
+        notes: ['不要用手拉脖子', '腰部貼地', '感受腹部收縮'],
+        mindMuscleScore: 7.5
     },
     '反向捲腹': {
         englishName: 'reverse crunch',
@@ -1113,7 +1185,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['平躺，雙腿彎曲抬起 90 度', '雙手放於身體兩側', '將髖部捲向胸部', '緩慢放下'],
-        notes: ['訓練下腹', '不要用慣性甩動', '核心主導動作']
+        notes: ['訓練下腹', '不要用慣性甩動', '核心主導動作'],
+        mindMuscleScore: 9.0
     },
     '俄羅斯轉體': {
         englishName: 'russian twist',
@@ -1125,7 +1198,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['坐姿，膝蓋彎曲，腳跟離地', '上身後傾約 45 度', '雙手交握於身前', '左右轉動身體，雙手碰地'],
-        notes: ['訓練腹斜肌', '可加啞鈴增加阻力', '保持脊椎中立']
+        notes: ['訓練腹斜肌', '可加啞鈴增加阻力', '保持脊椎中立'],
+        mindMuscleScore: 8.5
     },
     '啞鈴俄羅斯轉體': {
         englishName: 'dumbbell russian twist',
@@ -1137,7 +1211,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['坐姿，膝蓋彎曲，腳跟離地', '雙手共持一個啞鈴', '上身後傾約 45 度', '左右轉動身體'],
-        notes: ['用較輕的啞鈴', '不要靠手臂力量', '核心主導旋轉']
+        notes: ['用較輕的啞鈴', '不要靠手臂力量', '核心主導旋轉'],
+        mindMuscleScore: 9.0
     },
     '死蟲式': {
         englishName: 'dead bug exercise',
@@ -1149,7 +1224,8 @@ const exerciseDB = {
         defaultRest: 30,
         sets: 3,
         howTo: ['平躺，雙臂向上伸直，雙腿彎曲 90 度抬起', '腰部貼地', '對側手腳緩慢下放', '回到起始位置換邊'],
-        notes: ['對下背友善的核心訓練', '腰部全程貼地', '動作要慢']
+        notes: ['對下背友善的核心訓練', '腰部全程貼地', '動作要慢'],
+        mindMuscleScore: 7.0
     },
     '鳥狗式': {
         englishName: 'bird dog exercise',
@@ -1161,7 +1237,8 @@ const exerciseDB = {
         defaultRest: 30,
         sets: 3,
         howTo: ['四足跪姿', '同時伸直對側手和腿', '保持身體穩定，背部平直', '收回換邊'],
-        notes: ['身體不要搖晃', '伸直的手腳與身體同高', '對改善姿勢很有幫助']
+        notes: ['身體不要搖晃', '伸直的手腳與身體同高', '對改善姿勢很有幫助'],
+        mindMuscleScore: 7.0
     },
     '空中腳踏車': {
         englishName: 'bicycle crunch',
@@ -1173,7 +1250,8 @@ const exerciseDB = {
         defaultRest: 30,
         sets: 3,
         howTo: ['平躺，雙手輕扶頭側', '一腿彎曲一腿伸直', '對側手肘碰膝蓋', '交替進行'],
-        notes: ['訓練腹斜肌', '不要用手拉脖子', '動作要慢']
+        notes: ['訓練腹斜肌', '不要用手拉脖子', '動作要慢'],
+        mindMuscleScore: 8.0
     },
     'V 字捲腹': {
         englishName: 'v ups',
@@ -1185,7 +1263,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['平躺，雙手向後伸直', '同時抬起雙腿和上半身', '雙手碰腳尖，形成 V 字', '緩慢放下'],
-        notes: ['進階核心動作', '腰部容易受傷，先做基礎', '動作要連貫']
+        notes: ['進階核心動作', '腰部容易受傷，先做基礎', '動作要連貫'],
+        mindMuscleScore: 9.0
     },
     '剪刀腿': {
         englishName: 'flutter kicks',
@@ -1197,7 +1276,8 @@ const exerciseDB = {
         defaultRest: 30,
         sets: 3,
         howTo: ['平躺，雙腿伸直略抬起', '雙手放於身體兩側', '雙腿快速交替上下', '保持腰部貼地'],
-        notes: ['訓練下腹', '腰不要拱起', '腳離地越低越難']
+        notes: ['訓練下腹', '腰不要拱起', '腳離地越低越難'],
+        mindMuscleScore: 8.0
     },
     '抬腿': {
         englishName: 'leg raise',
@@ -1209,7 +1289,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['平躺，雙手放於身體兩側', '雙腿伸直', '抬起雙腿至 90 度', '緩慢放下，腳跟不觸地'],
-        notes: ['訓練下腹和髖屈肌', '腰部貼地', '感到腰痛立刻停止']
+        notes: ['訓練下腹和髖屈肌', '腰部貼地', '感到腰痛立刻停止'],
+        mindMuscleScore: 8.5
     },
     '懸空 L 字': {
         englishName: 'l sit hold',
@@ -1221,7 +1302,8 @@ const exerciseDB = {
         defaultRest: 90,
         sets: 3,
         howTo: ['坐在地上，雙手撐住兩個啞鈴', '推起身體離地', '雙腿伸直前舉', '保持姿勢'],
-        notes: ['進階核心和上肢動作', '需要良好上肢力量', '時間先短再加']
+        notes: ['進階核心和上肢動作', '需要良好上肢力量', '時間先短再加'],
+        mindMuscleScore: 9.5
     },
     '空氣腳踏車（仰臥）': {
         englishName: 'lying bicycle',
@@ -1233,7 +1315,8 @@ const exerciseDB = {
         defaultRest: 30,
         sets: 3,
         howTo: ['平躺', '雙腿模擬騎腳踏車動作', '腰部貼地', '雙手放於身體兩側或頭側'],
-        notes: ['輕鬆暖身', '可加上對側手肘碰膝增加難度', '保持核心參與']
+        notes: ['輕鬆暖身', '可加上對側手肘碰膝增加難度', '保持核心參與'],
+        mindMuscleScore: 6.5
     },
     '啞鈴抓舉': {
         englishName: 'dumbbell snatch',
@@ -1245,7 +1328,8 @@ const exerciseDB = {
         defaultRest: 90,
         sets: 3,
         howTo: ['雙腳與肩同寬，啞鈴在腳之間', '半蹲拿起啞鈴', '一氣呵成將啞鈴抓舉至頭頂上方', '緩慢放回起始位置'],
-        notes: ['進階全身動作', '需要良好基礎', '用較輕的重量學習']
+        notes: ['進階全身動作', '需要良好基礎', '用較輕的重量學習'],
+        mindMuscleScore: 9.0
     },
     '啞鈴推舉深蹲': {
         englishName: 'dumbbell thruster',
@@ -1257,7 +1341,8 @@ const exerciseDB = {
         defaultRest: 90,
         sets: 3,
         howTo: ['雙手持啞鈴於肩膀', '深蹲下', '挺身同時將啞鈴推至頭頂', '回到肩膀位置開始下一次'],
-        notes: ['全身性大動作', '節奏要連貫', '心肺要求高']
+        notes: ['全身性大動作', '節奏要連貫', '心肺要求高'],
+        mindMuscleScore: 9.0
     },
     '波比跳': {
         englishName: 'burpee',
@@ -1269,7 +1354,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['站立姿勢', '蹲下雙手撐地', '雙腳向後跳成俯臥撐', '收回雙腳跳起雙手過頭'],
-        notes: ['高強度燃脂動作', '注意手腕', '量力而為']
+        notes: ['高強度燃脂動作', '注意手腕', '量力而為'],
+        mindMuscleScore: 8.5
     },
     '熊爬': {
         englishName: 'bear crawl',
@@ -1281,7 +1367,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['四足姿勢，膝蓋離地約 5 公分', '對側手腳同時前進', '保持背部平直', '緩慢爬行'],
-        notes: ['髖部不要左右搖晃', '核心持續收緊', '速度可慢可快']
+        notes: ['髖部不要左右搖晃', '核心持續收緊', '速度可慢可快'],
+        mindMuscleScore: 7.5
     },
     '螃蟹走': {
         englishName: 'crab walk',
@@ -1293,7 +1380,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['坐地，雙手撐後', '推起髖部成桌面', '對側手腳前進', '保持髖部抬起'],
-        notes: ['訓練三頭肌和臀部', '注意手腕', '髖部不要下塌']
+        notes: ['訓練三頭肌和臀部', '注意手腕', '髖部不要下塌'],
+        mindMuscleScore: 7.0
     },
     '農夫走': {
         englishName: 'farmer walk dumbbell',
@@ -1305,7 +1393,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['雙手持重啞鈴於身體兩側', '挺胸，肩胛骨夾緊', '正常步伐行走', '保持身體穩定'],
-        notes: ['全身性訓練', '握力極限', '保持核心收緊']
+        notes: ['全身性訓練', '握力極限', '保持核心收緊'],
+        mindMuscleScore: 8.0
     },
     '土耳其起立': {
         englishName: 'turkish get up dumbbell',
@@ -1317,7 +1406,8 @@ const exerciseDB = {
         defaultRest: 120,
         sets: 3,
         howTo: ['平躺，一手持啞鈴向上伸直', '對側膝蓋彎曲，腳掌貼地', '逐步從躺姿起身至站姿', '反向回到起始位置'],
-        notes: ['複雜全身動作', '從很輕的重量開始', '看影片學習正確流程']
+        notes: ['複雜全身動作', '從很輕的重量開始', '看影片學習正確流程'],
+        mindMuscleScore: 9.5
     },
     '深蹲推舉': {
         englishName: 'squat to overhead press',
@@ -1329,7 +1419,8 @@ const exerciseDB = {
         defaultRest: 75,
         sets: 3,
         howTo: ['雙手持啞鈴於肩膀', '深蹲下', '挺身同時推舉過頭', '放回肩膀繼續下一次'],
-        notes: ['練全身和心肺', '節奏要連貫', '掌握雙腳穩定']
+        notes: ['練全身和心肺', '節奏要連貫', '掌握雙腳穩定'],
+        mindMuscleScore: 9.0
     },
     '啞鈴 Renegade Row': {
         englishName: 'renegade row',
@@ -1341,7 +1432,8 @@ const exerciseDB = {
         defaultRest: 75,
         sets: 3,
         howTo: ['俯臥撐姿勢，雙手握住啞鈴', '保持身體穩定', '一手划船至腰部', '回到起始位置換邊'],
-        notes: ['髖部不要扭動', '核心穩定最重要', '進階動作']
+        notes: ['髖部不要扭動', '核心穩定最重要', '進階動作'],
+        mindMuscleScore: 9.0
     },
     '雙啞鈴清舉': {
         englishName: 'dumbbell clean',
@@ -1353,7 +1445,8 @@ const exerciseDB = {
         defaultRest: 90,
         sets: 3,
         howTo: ['雙腳與肩同寬，啞鈴在腿前', '半蹲拿起啞鈴', '爆發力上拉至肩膀', '緩慢放下'],
-        notes: ['爆發性動作', '需要學習', '從輕開始']
+        notes: ['爆發性動作', '需要學習', '從輕開始'],
+        mindMuscleScore: 8.5
     },
     '開合跳': {
         englishName: 'jumping jacks',
@@ -1365,7 +1458,8 @@ const exerciseDB = {
         defaultRest: 30,
         sets: 3,
         howTo: ['雙腳併攏站立', '雙腳跳開同時雙手舉過頭', '雙腳併攏同時雙手放下', '快速連續進行'],
-        notes: ['暖身或燃脂的好動作', '腳尖落地緩衝', '注意膝蓋']
+        notes: ['暖身或燃脂的好動作', '腳尖落地緩衝', '注意膝蓋'],
+        mindMuscleScore: 6.5
     },
     '高抬腿': {
         englishName: 'high knees',
@@ -1377,7 +1471,8 @@ const exerciseDB = {
         defaultRest: 30,
         sets: 3,
         howTo: ['原地站立', '快速抬高膝蓋至腰部高度', '雙手前後擺動', '節奏快速'],
-        notes: ['心肺和核心訓練', '腳尖落地', '速度量力而為']
+        notes: ['心肺和核心訓練', '腳尖落地', '速度量力而為'],
+        mindMuscleScore: 7.5
     },
     '登山者': {
         englishName: 'mountain climbers',
@@ -1389,7 +1484,8 @@ const exerciseDB = {
         defaultRest: 30,
         sets: 3,
         howTo: ['俯臥撐姿勢', '輪流將膝蓋拉向胸部', '保持髖部低位', '速度快但動作標準'],
-        notes: ['核心持續收緊', '注意手腕', '心肺強化']
+        notes: ['核心持續收緊', '注意手腕', '心肺強化'],
+        mindMuscleScore: 8.0
     },
     '跳躍深蹲': {
         englishName: 'jump squat',
@@ -1401,7 +1497,8 @@ const exerciseDB = {
         defaultRest: 45,
         sets: 3,
         howTo: ['深蹲姿勢', '挺身同時向上跳躍', '腳尖落地緩衝', '立刻接下一次深蹲'],
-        notes: ['爆發力訓練', '腳尖落地', '膝蓋有問題的人不適合']
+        notes: ['爆發力訓練', '腳尖落地', '膝蓋有問題的人不適合'],
+        mindMuscleScore: 8.5
     },
     '波比跳簡化版': {
         englishName: 'modified burpee',
@@ -1413,7 +1510,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['站立', '蹲下雙手撐地', '雙腳向後步行（不跳）', '收回雙腳站起來'],
-        notes: ['初學者波比跳', '對膝蓋友善', '逐漸進階']
+        notes: ['初學者波比跳', '對膝蓋友善', '逐漸進階'],
+        mindMuscleScore: 7.5
     },
     '跳繩': {
         englishName: 'jump rope',
@@ -1425,7 +1523,8 @@ const exerciseDB = {
         defaultRest: 30,
         sets: 3,
         howTo: ['雙手持跳繩兩端', '手腕主導擺動', '腳尖輕跳', '保持節奏'],
-        notes: ['全身協調性訓練', '腳尖落地', '從少時間開始']
+        notes: ['全身協調性訓練', '腳尖落地', '從少時間開始'],
+        mindMuscleScore: 8.0
     },
     '跳箱（用低台）': {
         englishName: 'box jump low',
@@ -1437,7 +1536,8 @@ const exerciseDB = {
         defaultRest: 60,
         sets: 3,
         howTo: ['站在穩固平台前', '半蹲積累力量', '跳上平台', '步行下來，不要跳下'],
-        notes: ['注意安全，平台要穩固', '高度量力而為', '膝蓋有問題的人不適合']
+        notes: ['注意安全，平台要穩固', '高度量力而為', '膝蓋有問題的人不適合'],
+        mindMuscleScore: 8.5
     },
     '快速踏步': {
         englishName: 'fast feet',
@@ -1449,7 +1549,8 @@ const exerciseDB = {
         defaultRest: 30,
         sets: 3,
         howTo: ['原地半蹲姿勢', '雙腳輪流快速點地', '腳掌不離地太多', '保持節奏'],
-        notes: ['暖身或心肺訓練', '腳尖點地', '速度愈快愈好']
+        notes: ['暖身或心肺訓練', '腳尖點地', '速度愈快愈好'],
+        mindMuscleScore: 6.5
     },
 };
 
@@ -1498,13 +1599,268 @@ const orderingTips = [
 ];
 
 // ============================================
+// 熱身動作資料庫
+// ============================================
+const warmupDB = {
+    '開合跳熱身': {
+        englishName: 'jumping jacks warmup',
+        duration: 30,
+        targetRegion: ['全身'],
+        why: '提升心率到 60-70%，讓血液流向肌肉，準備接受訓練',
+        instructions: ['雙腳併攏站立，雙手放兩側', '跳起時雙腳分開、雙手舉過頭頂', '跳回起始位置', '節奏穩定，腳尖著地'],
+        tips: '感覺微微出汗、心跳加快即可，不需要做到喘'
+    },
+    '高抬腿熱身': {
+        englishName: 'high knees warmup',
+        duration: 30,
+        targetRegion: ['全身', '下肢'],
+        why: '啟動下肢肌群（髖屈肌、股四頭肌），提升心率',
+        instructions: ['原地站立', '快速交替抬高膝蓋至腰部高度', '雙手前後擺動', '腳尖著地，速度快'],
+        tips: '專注於「抬高膝蓋」而不是「跑得快」'
+    },
+    '動態貓牛': {
+        englishName: 'dynamic cat cow',
+        duration: 30,
+        targetRegion: ['全身', '上肢推', '上肢拉', '核心'],
+        why: '活動整條脊椎，喚醒核心，改善胸椎活動度（這對推/拉動作極重要）',
+        instructions: ['四足跪姿，手在肩下、膝在髖下', '貓式：吸氣，拱背、收下巴', '牛式：呼氣，下背凹陷、抬頭', '緩慢交替 8-10 次'],
+        tips: '配合呼吸，動作要慢，感受脊椎一節一節活動'
+    },
+    '手臂繞圈': {
+        englishName: 'arm circles',
+        duration: 30,
+        targetRegion: ['上肢推', '上肢拉'],
+        why: '潤滑肩關節，提升肩胛骨活動度，避免肩膀夾擠',
+        instructions: ['雙臂側平舉', '小幅度向前繞圈 10 次', '反向向後繞圈 10 次', '逐漸加大繞圈幅度'],
+        tips: '感覺肩關節「滑順」、不卡卡的就對了'
+    },
+    '阻力帶 Pull Apart 熱身': {
+        englishName: 'band pull apart warmup',
+        duration: 30,
+        targetRegion: ['上肢推', '上肢拉'],
+        why: '啟動上背和後三角肌，這是改善圓肩、避免推類動作肩膀痛的關鍵',
+        instructions: ['雙手握阻力帶於胸前', '雙臂打直，向兩側拉開', '感受肩胛骨夾緊', '緩慢回到起始位置，重複 15 下'],
+        tips: '用較輕的阻力帶當熱身，重要的是感受度而非力量'
+    },
+    '啞鈴空推熱身': {
+        englishName: 'empty press warmup',
+        duration: 30,
+        targetRegion: ['上肢推'],
+        why: '神經啟動：用空手或極輕的啞鈴模擬正式動作，喚醒肌肉記憶',
+        instructions: ['用空手或最輕的啞鈴', '模擬胸推或肩推動作 10 下', '專注於「感受要練的肌群」', '速度慢，建立連結'],
+        tips: 'mind-muscle connection 從這裡開始！'
+    },
+    '髖關節繞圈': {
+        englishName: 'hip circles',
+        duration: 30,
+        targetRegion: ['下肢'],
+        why: '潤滑髖關節，活動度提升讓深蹲動作更流暢、深度更夠',
+        instructions: ['雙手叉腰，雙腳與肩同寬', '髖部緩慢順時針繞圈 5 圈', '反向逆時針繞圈 5 圈', '幅度由小到大'],
+        tips: '感覺髖關節「順」起來，沒有卡卡的感覺'
+    },
+    '動態弓箭步': {
+        englishName: 'dynamic lunges',
+        duration: 30,
+        targetRegion: ['下肢'],
+        why: '同時啟動股四頭肌、臀肌、髖屈肌，是深蹲、弓步前的最佳暖身',
+        instructions: ['雙腳併攏站立', '一腳向前跨大步成弓箭步', '前膝彎曲 90 度，後膝微離地', '推回起始位置，換腿，各 5 下'],
+        tips: '不需要太深，重點是讓肌肉準備好'
+    },
+    '世界最棒伸展': {
+        englishName: 'worlds greatest stretch',
+        duration: 60,
+        targetRegion: ['下肢', '核心'],
+        why: '一個動作活動到髖、胸椎、腿後肌、肩膀，效率最高的全身動態伸展',
+        instructions: ['從伏地挺身姿勢開始', '右腳跨到右手外側，成弓箭步', '右手向上轉開，眼睛看天花板', '回到起始姿勢，換腿，各 3 下'],
+        tips: '每個位置停留 1-2 秒，感受拉伸'
+    },
+    '徒手深蹲熱身': {
+        englishName: 'bodyweight squat warmup',
+        duration: 30,
+        targetRegion: ['下肢'],
+        why: '用最原始的動作模式喚醒下肢，幫助找到正確的深蹲姿勢',
+        instructions: ['雙腳與肩同寬', '下蹲到大腿水平', '挺身回起始位置', '節奏穩定做 10 下'],
+        tips: '專注於姿勢正確性，不是速度'
+    },
+    '阻力帶 Y 字熱身': {
+        englishName: 'band Y raise warmup',
+        duration: 30,
+        targetRegion: ['上肢拉'],
+        why: '啟動下斜方肌（划船的關鍵肌群），改善聳肩問題',
+        instructions: ['雙腳踩住阻力帶', '雙手持帶於身前', '向斜上方舉起，形成 Y 字', '緩慢放下，重複 12 下'],
+        tips: '感受肩胛骨「下壓」的感覺'
+    },
+    '軀幹旋轉': {
+        englishName: 'torso rotation',
+        duration: 30,
+        targetRegion: ['核心'],
+        why: '活動胸椎，這對核心訓練（如俄羅斯轉體）非常重要',
+        instructions: ['雙腳與肩同寬站立', '雙手抱胸或放肩上', '左右扭轉軀幹', '節奏穩定做 20 下（左右各 10）'],
+        tips: '臀部固定不動，只有上半身在轉'
+    },
+    '鳥狗式熱身': {
+        englishName: 'bird dog warmup',
+        duration: 30,
+        targetRegion: ['核心'],
+        why: '啟動深層核心、訓練核心穩定性，避免訓練中下背受傷',
+        instructions: ['四足跪姿', '同時伸直對側手腳', '保持 1 秒，回到起始', '左右交替 10 下'],
+        tips: '身體不要左右搖晃'
+    },
+};
+
+// ============================================
+// 收操動作資料庫
+// ============================================
+const cooldownDB = {
+    '胸大肌伸展': {
+        englishName: 'doorway chest stretch',
+        duration: 30,
+        targetRegion: ['上肢推'],
+        why: '訓練後胸肌會緊繃，伸展可以改善「圓肩」和姿勢',
+        instructions: ['站在門框旁', '一手肘彎曲 90 度撐在門框', '身體向前傾斜，感受胸肌拉伸', '左右各 30 秒'],
+        tips: '感受胸肌「被拉開」的感覺，不要拉到痛',
+        massageHint: '可以用按摩球或拳頭輕揉胸大肌'
+    },
+    '肩三角肌伸展': {
+        englishName: 'shoulder cross body stretch',
+        duration: 30,
+        targetRegion: ['上肢推', '上肢拉'],
+        why: '緩解三角肌緊繃，改善肩膀活動度',
+        instructions: ['右手橫過胸前', '左手抱住右肘往身體拉', '感受右肩外側拉伸', '左右各 30 秒'],
+        tips: '保持肩膀放鬆，不要聳肩',
+        massageHint: '可以用網球壓在肩後肌肉慢慢滾動'
+    },
+    '三頭肌伸展': {
+        englishName: 'tricep overhead stretch',
+        duration: 30,
+        targetRegion: ['上肢推'],
+        why: '推類訓練後三頭肌容易緊繃，伸展提升手臂活動度',
+        instructions: ['右手舉過頭頂', '彎曲手肘，手掌貼後背', '左手抓右肘輕拉', '左右各 30 秒'],
+        tips: '不要用力過猛，感覺到拉伸就好'
+    },
+    '背部伸展': {
+        englishName: 'seated forward fold',
+        duration: 30,
+        targetRegion: ['上肢拉'],
+        why: '緩解整個背部和腿後肌緊繃，是上肢拉訓練後的關鍵伸展',
+        instructions: ['坐姿，雙腿伸直', '上身緩慢前彎', '雙手盡量碰腳尖', '保持 30-45 秒'],
+        tips: '不要強迫自己碰到腳，伸展不是比賽',
+        massageHint: '可以用滾筒滾上背、闊背肌'
+    },
+    '貓牛伸展（收操）': {
+        englishName: 'cat cow cooldown',
+        duration: 30,
+        targetRegion: ['上肢拉', '核心'],
+        why: '緩慢的脊椎活動，幫助下背放鬆',
+        instructions: ['四足跪姿', '緩慢交替貓式和牛式', '配合深呼吸', '做 8-10 次'],
+        tips: '比熱身的版本更慢，重點是放鬆而不是活動'
+    },
+    '四頭肌伸展': {
+        englishName: 'standing quad stretch',
+        duration: 30,
+        targetRegion: ['下肢'],
+        why: '訓練後股四頭肌會緊繃，伸展改善膝蓋活動度',
+        instructions: ['站立，可扶牆保持平衡', '右手抓右腳腳踝往臀部拉', '感受大腿前側拉伸', '左右各 30 秒'],
+        tips: '膝蓋要朝下，不要外翻',
+        massageHint: '滾筒滾大腿前側 1 分鐘'
+    },
+    '腿後肌伸展': {
+        englishName: 'hamstring stretch',
+        duration: 30,
+        targetRegion: ['下肢'],
+        why: '腿後肌緊繃會影響深蹲深度和下背健康',
+        instructions: ['坐姿，一腿伸直，一腿彎曲', '上身向伸直腿前彎', '雙手碰腳尖', '左右各 30 秒'],
+        tips: '不要彎背，從髖關節折疊',
+        massageHint: '滾筒滾大腿後側'
+    },
+    '髖屈肌伸展': {
+        englishName: 'hip flexor stretch',
+        duration: 30,
+        targetRegion: ['下肢', '核心'],
+        why: '現代人久坐讓髖屈肌縮短，這個伸展是「改善姿勢」的神器',
+        instructions: ['弓箭步姿勢，後膝跪地', '臀部往前推', '感受後腿前側拉伸', '左右各 30 秒'],
+        tips: '不要過度後仰，骨盆收緊'
+    },
+    '臀部 4 字伸展': {
+        englishName: 'figure 4 stretch',
+        duration: 30,
+        targetRegion: ['下肢'],
+        why: '伸展臀大肌、梨狀肌，緩解下背痛',
+        instructions: ['平躺，雙膝彎曲', '右腳踝放左大腿上，形成 4 字', '雙手抱左大腿往胸口拉', '左右各 30 秒'],
+        tips: '感受臀部深層的拉伸',
+        massageHint: '網球壓在臀部慢慢移動'
+    },
+    '小腿伸展': {
+        englishName: 'calf stretch wall',
+        duration: 30,
+        targetRegion: ['下肢'],
+        why: '小腿緊繃會影響跑步姿勢和深蹲深度',
+        instructions: ['雙手撐牆', '一腳前一腳後', '後腳腳跟貼地，感受小腿拉伸', '左右各 30 秒'],
+        tips: '後腳腳跟一定要貼地'
+    },
+    '童式': {
+        englishName: 'childs pose',
+        duration: 60,
+        targetRegion: ['核心', '上肢推', '上肢拉'],
+        why: '全身放鬆動作，緩解背部、肩膀、臀部緊繃',
+        instructions: ['跪姿，臀部坐在腳跟上', '上身緩慢前傾，額頭碰地', '雙手向前伸展', '保持 1 分鐘，配合深呼吸'],
+        tips: '完全放鬆，配合 4-7-8 呼吸法'
+    },
+    '4-7-8 呼吸': {
+        englishName: 'breathing exercise',
+        duration: 60,
+        targetRegion: ['全身', '核心', '上肢推', '上肢拉', '下肢'],
+        why: '從交感神經切換到副交感神經，加速恢復、放鬆心情',
+        instructions: ['舒服坐姿或躺姿', '吸氣 4 秒（用鼻）', '憋氣 7 秒', '呼氣 8 秒（用嘴）', '重複 4-6 次'],
+        tips: '感覺心跳變慢、肌肉放鬆即達到效果'
+    },
+};
+
+// ============================================
+// 訓練日 → 熱身/收操動作映射
+// ============================================
+const warmupCooldownMap = {
+    'monday': {
+        name: '上肢推',
+        warmup: ['開合跳熱身', '動態貓牛', '手臂繞圈', '阻力帶 Pull Apart 熱身', '啞鈴空推熱身'],
+        cooldown: ['胸大肌伸展', '肩三角肌伸展', '三頭肌伸展', '4-7-8 呼吸']
+    },
+    'tuesday': {
+        name: '下肢',
+        warmup: ['開合跳熱身', '高抬腿熱身', '髖關節繞圈', '動態弓箭步', '徒手深蹲熱身'],
+        cooldown: ['四頭肌伸展', '腿後肌伸展', '髖屈肌伸展', '臀部 4 字伸展', '4-7-8 呼吸']
+    },
+    'thursday': {
+        name: '上肢拉',
+        warmup: ['開合跳熱身', '動態貓牛', '手臂繞圈', '阻力帶 Y 字熱身', '阻力帶 Pull Apart 熱身'],
+        cooldown: ['背部伸展', '貓牛伸展（收操）', '肩三角肌伸展', '童式', '4-7-8 呼吸']
+    },
+    'friday': {
+        name: '核心',
+        warmup: ['開合跳熱身', '動態貓牛', '軀幹旋轉', '鳥狗式熱身', '世界最棒伸展'],
+        cooldown: ['童式', '貓牛伸展（收操）', '臀部 4 字伸展', '腿後肌伸展', '4-7-8 呼吸']
+    },
+    'saturday': {
+        name: '軀幹強化',
+        warmup: ['開合跳熱身', '高抬腿熱身', '動態貓牛', '軀幹旋轉', '鳥狗式熱身'],
+        cooldown: ['童式', '貓牛伸展（收操）', '腿後肌伸展', '臀部 4 字伸展', '4-7-8 呼吸']
+    },
+};
+
+// ============================================
 // 訓練模板
 // ============================================
 const defaultTemplates = {
     monday: { name: '上肢推 + 代謝', icon: '💪', region: 'upper', focus: '胸、肩、三頭', exercises: ['啞鈴胸推', '啞鈴肩推', '伏地挺身', '啞鈴側平舉', '啞鈴三頭伸展'] },
     tuesday: { name: '下肢 + 代謝', icon: '🦵', region: 'lower', focus: '腿、臀', exercises: ['啞鈴深蹲', '啞鈴保加利亞分腿蹲', '啞鈴硬舉', '臀橋', '啞鈴弓步蹲'] },
     thursday: { name: '上肢拉 + 全身', icon: '🏋️', region: 'full', focus: '背、二頭、全身', exercises: ['啞鈴划船', '啞鈴單臂划船', '啞鈴二頭彎舉', '啞鈴抓舉', '啞鈴錘式彎舉'] },
-    friday: { name: '核心 + 活動度', icon: '🧘', region: 'core', focus: '核心、恢復', exercises: ['平板支撐', '死蟲式', '鳥狗式', '側平板', '捲腹'] }
+    friday: { name: '核心 + 活動度', icon: '🧘', region: 'core', focus: '核心、恢復', exercises: ['平板支撐', '死蟲式', '鳥狗式', '側平板', '捲腹'] },
+    saturday: {
+        name: '軀幹強化',
+        icon: '🔥',
+        focus: '針對軀幹脂肪、核心、HIIT',
+        exercises: ['平板支撐', '俄羅斯轉體', '登山者', '反向捲腹', '波比跳']
+    }
 };
 
 const durationConfigs = {
@@ -1520,6 +1876,15 @@ function FitnessApp() {
     const [currentPage, setCurrentPage] = useState('home');
     const [mainTab, setMainTab] = useState('workout'); // 'workout' or 'food'
     const [userLocation, setUserLocation] = useState(null);
+    // 身體數據（v13 新）
+    const [bodyData, setBodyData] = useState([]); // 歷史紀錄陣列
+    const [bodyGoal, setBodyGoal] = useState({ targetBodyFat: 18, targetWeight: 78 });
+    // 訓練階段：'warmup' | 'main' | 'cooldown'
+    const [trainingPhase, setTrainingPhase] = useState('main');
+    const [warmupIdx, setWarmupIdx] = useState(0);
+    const [cooldownIdx, setCooldownIdx] = useState(0);
+    const [phaseSecondsLeft, setPhaseSecondsLeft] = useState(0);
+    const [phasePaused, setPhasePaused] = useState(false);
     // 動作搜尋頁狀態
     const [searchQuery, setSearchQuery] = useState('');
     const [filterMuscles, setFilterMuscles] = useState([]);
@@ -1548,6 +1913,7 @@ function FitnessApp() {
     const [showSaveToast, setShowSaveToast] = useState(false);
     const [showInputModal, setShowInputModal] = useState(null);
     const [inputValue, setInputValue] = useState('');
+    const [inputWeight, setInputWeight] = useState('');
 
     // 載入儲存的資料
     useEffect(() => {
@@ -1574,6 +1940,38 @@ function FitnessApp() {
         
         const prog = safeStorage.get('fittrack_progress');
         if (prog) setProgress(prog);
+        
+        // 載入身體數據
+        var bd = safeStorage.get('fittrack_bodyData');
+        if (bd && Array.isArray(bd)) {
+            setBodyData(bd);
+        } else {
+            // 第一次載入，預設 Kevin 的最新資料
+            const initialData = [
+                {
+                    date: '2026-05-03',
+                    weight: 83.05,
+                    bodyFat: 22.7,
+                    muscleMass: 60.9,
+                    visceralFat: 8.0,
+                    waterMass: 47.6,
+                    boneMineral: 3.3,
+                    skeletalMuscle: 33.6,
+                    proteinMass: 12.6,
+                    bmr: 1757,
+                    bodyAge: 39,
+                    fatMass: 18.8,
+                    trunkFat: 9.7,
+                    bodyScore: 78,
+                    note: '基準測量'
+                }
+            ];
+            setBodyData(initialData);
+            safeStorage.set('fittrack_bodyData', initialData);
+        }
+        
+        var bg = safeStorage.get('fittrack_bodyGoal');
+        if (bg) setBodyGoal(bg);
     }, []);
 
     // 計時器（手動模式）
@@ -1814,10 +2212,10 @@ function FitnessApp() {
         safeStorage.set('fittrack_favorites', newFavs);
     };
     
-    // 篩選邏輯
+    // 篩選邏輯（按肌肉感受度排序）
     const getFilteredExercises = () => {
         var allExercises = Object.keys(exerciseDB);
-        return allExercises.filter(function(name) {
+        var filtered = allExercises.filter(function(name) {
             var ex = exerciseDB[name];
             
             // 搜尋關鍵字
@@ -1861,6 +2259,13 @@ function FitnessApp() {
             
             return true;
         });
+        // 按感受度評分降序排列（最有感的排前面）
+        filtered.sort(function(a, b) {
+            var scoreA = exerciseDB[a].mindMuscleScore || 0;
+            var scoreB = exerciseDB[b].mindMuscleScore || 0;
+            return scoreB - scoreA;
+        });
+        return filtered;
     };
     
     // 取得使用者位置
@@ -1931,12 +2336,131 @@ function FitnessApp() {
         setCompletedSets(exercises.map(() => []));
         setTimerSeconds(0);
         setIsTimerRunning(false);
+        // 從熱身階段開始
+        const map = warmupCooldownMap[day];
+        if (map && map.warmup && map.warmup.length > 0) {
+            setTrainingPhase('warmup');
+            setWarmupIdx(0);
+            const firstWarmup = warmupDB[map.warmup[0]];
+            setPhaseSecondsLeft(firstWarmup ? firstWarmup.duration : 30);
+            setPhasePaused(false);
+        } else {
+            setTrainingPhase('main');
+        }
         setCurrentPage('training');
     };
+    
+    // 進入主訓練階段
+    const enterMainPhase = () => {
+        setTrainingPhase('main');
+        setPhaseSecondsLeft(0);
+        setPhasePaused(false);
+    };
+    
+    // 進入收操階段
+    const enterCooldownPhase = () => {
+        const map = warmupCooldownMap[selectedDay];
+        if (map && map.cooldown && map.cooldown.length > 0) {
+            setTrainingPhase('cooldown');
+            setCooldownIdx(0);
+            const firstCooldown = cooldownDB[map.cooldown[0]];
+            setPhaseSecondsLeft(firstCooldown ? firstCooldown.duration : 30);
+            setPhasePaused(false);
+        } else {
+            // 沒有收操，直接結束
+            setCurrentPage('home');
+        }
+    };
+    
+    // 熱身/收操倒數計時
+    const phaseInterval = useRef(null);
+    
+    useEffect(() => {
+        if (trainingPhase !== 'warmup' && trainingPhase !== 'cooldown') return;
+        if (phasePaused) return;
+        if (phaseSecondsLeft <= 0) return;
+        
+        const interval = setInterval(function() {
+            setPhaseSecondsLeft(function(prev) {
+                if (prev === 3 || prev === 2 || prev === 1) {
+                    notify('tick');
+                }
+                if (prev <= 1) {
+                    notify('finish');
+                    // 自動進入下一個動作
+                    if (trainingPhase === 'warmup') {
+                        setWarmupIdx(function(prevIdx) {
+                            const map = warmupCooldownMap[selectedDay];
+                            if (!map) return prevIdx;
+                            if (prevIdx + 1 >= map.warmup.length) {
+                                // 熱身完成 → 進入主訓練
+                                setTimeout(enterMainPhase, 100);
+                                return prevIdx;
+                            }
+                            const nextWarmup = warmupDB[map.warmup[prevIdx + 1]];
+                            setPhaseSecondsLeft(nextWarmup ? nextWarmup.duration : 30);
+                            return prevIdx + 1;
+                        });
+                    } else if (trainingPhase === 'cooldown') {
+                        setCooldownIdx(function(prevIdx) {
+                            const map = warmupCooldownMap[selectedDay];
+                            if (!map) return prevIdx;
+                            if (prevIdx + 1 >= map.cooldown.length) {
+                                // 收操完成 → 結束
+                                setTimeout(function() { setCurrentPage('home'); }, 1000);
+                                return prevIdx;
+                            }
+                            const nextCooldown = cooldownDB[map.cooldown[prevIdx + 1]];
+                            setPhaseSecondsLeft(nextCooldown ? nextCooldown.duration : 30);
+                            return prevIdx + 1;
+                        });
+                    }
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        
+        return function() { clearInterval(interval); };
+    }, [trainingPhase, phasePaused, selectedDay]);
+    
+    // 跳到下一個熱身/收操動作
+    const skipPhaseExercise = () => {
+        const map = warmupCooldownMap[selectedDay];
+        if (!map) return;
+        if (trainingPhase === 'warmup') {
+            if (warmupIdx + 1 >= map.warmup.length) {
+                enterMainPhase();
+            } else {
+                setWarmupIdx(warmupIdx + 1);
+                const nextWarmup = warmupDB[map.warmup[warmupIdx + 1]];
+                setPhaseSecondsLeft(nextWarmup ? nextWarmup.duration : 30);
+            }
+        } else if (trainingPhase === 'cooldown') {
+            if (cooldownIdx + 1 >= map.cooldown.length) {
+                setCurrentPage('home');
+            } else {
+                setCooldownIdx(cooldownIdx + 1);
+                const nextCooldown = cooldownDB[map.cooldown[cooldownIdx + 1]];
+                setPhaseSecondsLeft(nextCooldown ? nextCooldown.duration : 30);
+            }
+        }
+    };
+    
+    // 跳過整個階段
+    const skipEntirePhase = () => {
+        if (trainingPhase === 'warmup') {
+            enterMainPhase();
+        } else if (trainingPhase === 'cooldown') {
+            setCurrentPage('home');
+        }
+    };
 
-    const recordSet = (reps) => {
+    const recordSet = (reps, weight) => {
+        // reps 是次數或秒數，weight 是重量(kg)，weight 可為 null
+        var record = weight != null ? { reps: reps, weight: weight } : reps;
         var newSets = completedSets.slice();
-        newSets[currentExerciseIdx] = (newSets[currentExerciseIdx] || []).concat([reps]);
+        newSets[currentExerciseIdx] = (newSets[currentExerciseIdx] || []).concat([record]);
         setCompletedSets(newSets);
         setIsTimerRunning(false);
         setTimerSeconds(0);
@@ -1952,6 +2476,57 @@ function FitnessApp() {
     // ============================================
     // 渲染輔助元件
     // ============================================
+    
+    // 人形肌群圖示（簡化版，標出主要/次要肌群）
+    const BodyDiagram = ({ primary = [], secondary = [], size = 60 }) => {
+        // 各肌群的顏色判定
+        const isHighlightedPrimary = function(muscle) { return primary.indexOf(muscle) >= 0; };
+        const isHighlightedSecondary = function(muscle) { return secondary.indexOf(muscle) >= 0; };
+        
+        const getColor = function(muscle) {
+            if (isHighlightedPrimary(muscle)) return '#ef4444'; // 紅色：主要
+            if (isHighlightedSecondary(muscle)) return '#f59e0b'; // 橘色：次要
+            return '#334155'; // 灰色：未涉及
+        };
+        
+        // 用 SVG 畫一個簡化的人體前視圖
+        return React.createElement('svg', {
+            width: size,
+            height: size * 1.4,
+            viewBox: '0 0 60 84',
+            style: { display: 'block' }
+        },
+            // 頭
+            React.createElement('circle', { cx: 30, cy: 8, r: 6, fill: '#475569' }),
+            // 脖子
+            React.createElement('rect', { x: 28, y: 13, width: 4, height: 4, fill: '#475569' }),
+            // 肩 (左右)
+            React.createElement('ellipse', { cx: 18, cy: 20, rx: 5, ry: 4, fill: getColor('肩') }),
+            React.createElement('ellipse', { cx: 42, cy: 20, rx: 5, ry: 4, fill: getColor('肩') }),
+            // 胸
+            React.createElement('rect', { x: 19, y: 18, width: 22, height: 14, rx: 3, fill: getColor('胸') }),
+            // 手臂 (左右上半)
+            React.createElement('rect', { x: 12, y: 22, width: 5, height: 14, rx: 2, fill: getColor('手臂') }),
+            React.createElement('rect', { x: 43, y: 22, width: 5, height: 14, rx: 2, fill: getColor('手臂') }),
+            // 手臂 (左右下半 - 前臂)
+            React.createElement('rect', { x: 12, y: 36, width: 5, height: 14, rx: 2, fill: getColor('手臂') }),
+            React.createElement('rect', { x: 43, y: 36, width: 5, height: 14, rx: 2, fill: getColor('手臂') }),
+            // 核心/腹部
+            React.createElement('rect', { x: 22, y: 32, width: 16, height: 12, rx: 2, fill: getColor('核心') }),
+            // 髖/臀（從前面看用一個小區塊代表）
+            React.createElement('rect', { x: 21, y: 44, width: 18, height: 6, rx: 2, fill: getColor('臀') }),
+            // 大腿 (左右)
+            React.createElement('rect', { x: 22, y: 50, width: 7, height: 16, rx: 2, fill: getColor('腿') }),
+            React.createElement('rect', { x: 31, y: 50, width: 7, height: 16, rx: 2, fill: getColor('腿') }),
+            // 小腿 (左右)
+            React.createElement('rect', { x: 23, y: 66, width: 6, height: 14, rx: 2, fill: getColor('腿') }),
+            React.createElement('rect', { x: 31, y: 66, width: 6, height: 14, rx: 2, fill: getColor('腿') }),
+            // 全身/心肺：在頭頂加標記
+            (primary.indexOf('全身') >= 0 || primary.indexOf('心肺') >= 0) && 
+                React.createElement('circle', { cx: 30, cy: 8, r: 7, fill: 'none', stroke: '#ef4444', strokeWidth: 1.5, strokeDasharray: '2,1' })
+        );
+    };
+    
     const MuscleBadges = ({ primary, secondary, size = 'sm' }) => {
         const sizeClass = size === 'lg' ? 'text-sm px-3 py-1.5' : 'text-xs px-2 py-1';
         return React.createElement('div', { className: 'flex flex-wrap gap-1.5' },
@@ -1975,39 +2550,57 @@ function FitnessApp() {
     const InputModal = () => {
         if (!showInputModal) return null;
         return React.createElement('div', {
-            className: 'fixed inset-0 bg-black/80 z-50 flex items-end sm:items-center justify-center p-4',
+            className: 'fixed inset-0 bg-black/80 z-50 flex items-end justify-center',
             onClick: () => setShowInputModal(null)
         }, React.createElement('div', {
-            className: 'bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-sm',
+            className: 'bg-slate-900 border-t border-slate-700 rounded-t-3xl w-full p-5 pb-8',
             onClick: e => e.stopPropagation()
         },
-            React.createElement('h3', { className: 'text-lg font-bold text-cyan-300 mb-2' }, '第 ' + (showInputModal.setNum) + ' 組完成幾下？'),
+            React.createElement('h3', { className: 'text-lg font-bold text-cyan-300 mb-2' }, '第 ' + (showInputModal.setNum) + ' 組完成？'),
             React.createElement('p', { className: 'text-sm text-slate-400 mb-4' }, '目標：' + (showInputModal.target)),
+            
+            // 次數輸入
+            React.createElement('label', { className: 'text-xs text-slate-400 mb-1 block' }, '完成幾下'),
             React.createElement('input', {
                 type: 'number',
+                inputMode: 'numeric',
                 value: inputValue,
                 onChange: e => setInputValue(e.target.value),
+                placeholder: '次數',
                 autoFocus: true,
-                inputMode: 'numeric',
-                pattern: '[0-9]*',
-                className: 'w-full bg-slate-800 border border-slate-600 rounded-xl px-4 py-3 text-2xl font-bold text-center text-white focus:outline-none focus:border-cyan-500',
-                placeholder: '0'
+                className: 'w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-2xl font-bold text-center mb-3'
             }),
-            React.createElement('div', { className: 'flex gap-2 mt-4' },
+            
+            // 重量輸入（選填）
+            React.createElement('label', { className: 'text-xs text-slate-400 mb-1 block' }, '使用重量（kg）- 可選'),
+            React.createElement('input', {
+                type: 'number',
+                inputMode: 'decimal',
+                step: '0.5',
+                value: inputWeight,
+                onChange: e => setInputWeight(e.target.value),
+                placeholder: '重量 kg',
+                className: 'w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-xl font-bold text-center mb-4'
+            }),
+            
+            React.createElement('div', { className: 'flex gap-2' },
                 React.createElement('button', {
-                    onClick: () => { setShowInputModal(null); setInputValue(''); },
-                    className: 'flex-1 py-3 bg-slate-700 rounded-xl font-semibold text-slate-300'
+                    onClick: () => { setShowInputModal(null); setInputValue(''); setInputWeight(''); },
+                    className: 'flex-1 py-3 bg-slate-800 rounded-xl text-slate-300 font-semibold'
                 }, '取消'),
                 React.createElement('button', {
                     onClick: () => {
-                        if (inputValue) {
-                            recordSet(parseInt(inputValue));
-                            setInputValue('');
+                        const n = parseInt(inputValue);
+                        const w = parseFloat(inputWeight);
+                        if (n && n > 0) {
+                            recordSet(n, isNaN(w) ? null : w);
                             setShowInputModal(null);
+                            setInputValue('');
+                            setInputWeight('');
                         }
                     },
-                    className: 'flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl font-semibold text-white'
-                }, '記錄')
+                    className: 'flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl text-white font-bold'
+                }, '✓ 記錄')
             )
         ));
     };
@@ -2034,8 +2627,33 @@ function FitnessApp() {
                 React.createElement('button', { onClick: () => setShowDetailModal(null), className: 'text-slate-400 p-2' }, React.createElement(Icon, { name: 'x', size: 24 }))
             ),
             React.createElement('div', { className: 'p-4 space-y-4' },
+                // 感受度 + 人形圖
+                React.createElement('div', { className: 'bg-slate-800/50 rounded-2xl p-4 border border-slate-700 flex gap-4' },
+                    // 人形圖
+                    React.createElement('div', { className: 'flex-shrink-0' },
+                        React.createElement(BodyDiagram, {
+                            primary: ex.primary,
+                            secondary: ex.secondary || [],
+                            size: 80
+                        })
+                    ),
+                    // 資訊
+                    React.createElement('div', { className: 'flex-1' },
+                        React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-wider mb-2' }, '訓練肌肉'),
+                        React.createElement(MuscleBadges, { primary: ex.primary, secondary: ex.secondary, size: 'sm' }),
+                        // 感受度評分
+                        ex.mindMuscleScore && React.createElement('div', { className: 'mt-3 pt-3 border-t border-slate-700' },
+                            React.createElement('p', { className: 'text-xs text-slate-400 mb-1' }, '肌肉感受度'),
+                            React.createElement('p', { className: 'text-base' },
+                                React.createElement('span', { className: 'text-amber-400' }, '⭐'.repeat(Math.round(ex.mindMuscleScore / 2))),
+                                React.createElement('span', { className: 'text-slate-400 text-sm ml-2' }, '(' + ex.mindMuscleScore + '/10)')
+                            )
+                        )
+                    )
+                ),
+                // 額外詳情區塊
                 React.createElement('div', { className: 'bg-slate-800/50 rounded-2xl p-4 border border-slate-700' },
-                    React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-wider mb-3' }, '訓練肌肉'),
+                    React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-wider mb-3' }, '訓練詳情'),
                     React.createElement(MuscleBadges, { primary: ex.primary, secondary: ex.secondary, size: 'lg' }),
                     React.createElement('div', { className: 'mt-3 space-y-1' },
                         React.createElement('p', { className: 'text-sm' },
@@ -2273,6 +2891,320 @@ function FitnessApp() {
     };
     
     // ============================================
+    // 身體數據頁面（v13 新）
+    // ============================================
+    const [showBodyDataModal, setShowBodyDataModal] = useState(false);
+    const [bodyDataInput, setBodyDataInput] = useState({
+        weight: '', bodyFat: '', muscleMass: '', visceralFat: '',
+        trunkFat: '', note: ''
+    });
+    
+    // 取得最新一筆身體數據
+    const getLatestBodyData = () => {
+        if (!bodyData || bodyData.length === 0) return null;
+        return bodyData[bodyData.length - 1];
+    };
+    
+    // 新增身體數據紀錄
+    const saveBodyData = () => {
+        const today = new Date().toISOString().split('T')[0];
+        const newRecord = {
+            date: today,
+            weight: parseFloat(bodyDataInput.weight) || null,
+            bodyFat: parseFloat(bodyDataInput.bodyFat) || null,
+            muscleMass: parseFloat(bodyDataInput.muscleMass) || null,
+            visceralFat: parseFloat(bodyDataInput.visceralFat) || null,
+            trunkFat: parseFloat(bodyDataInput.trunkFat) || null,
+            note: bodyDataInput.note || ''
+        };
+        
+        // 至少要有體重或體脂率
+        if (!newRecord.weight && !newRecord.bodyFat) {
+            alert('請至少填寫體重或體脂率');
+            return;
+        }
+        
+        const newData = bodyData.concat([newRecord]);
+        setBodyData(newData);
+        safeStorage.set('fittrack_bodyData', newData);
+        setBodyDataInput({ weight: '', bodyFat: '', muscleMass: '', visceralFat: '', trunkFat: '', note: '' });
+        setShowBodyDataModal(false);
+    };
+    
+    // 刪除某筆身體數據
+    const deleteBodyData = (idx) => {
+        if (!confirm('確定要刪除這筆紀錄嗎？')) return;
+        const newData = bodyData.filter(function(_, i) { return i !== idx; });
+        setBodyData(newData);
+        safeStorage.set('fittrack_bodyData', newData);
+    };
+    
+    const BodyDataModal = () => {
+        if (!showBodyDataModal) return null;
+        return React.createElement('div', {
+            className: 'fixed inset-0 bg-black/80 z-50 flex items-end justify-center',
+            onClick: () => setShowBodyDataModal(false)
+        }, React.createElement('div', {
+            className: 'bg-slate-900 border-t border-slate-700 rounded-t-3xl w-full p-5 pb-8 max-h-[90vh] overflow-y-auto',
+            onClick: e => e.stopPropagation()
+        },
+            React.createElement('h3', { className: 'text-lg font-bold text-cyan-300 mb-3' }, '📈 新增身體數據'),
+            React.createElement('p', { className: 'text-xs text-slate-400 mb-4' }, '至少填一個欄位（體重或體脂率）'),
+            
+            React.createElement('div', { className: 'space-y-3' },
+                React.createElement('div', null,
+                    React.createElement('label', { className: 'text-xs text-slate-400 mb-1 block' }, '體重 (kg)'),
+                    React.createElement('input', {
+                        type: 'number', step: '0.1', inputMode: 'decimal',
+                        value: bodyDataInput.weight,
+                        onChange: e => setBodyDataInput(Object.assign({}, bodyDataInput, { weight: e.target.value })),
+                        placeholder: '83.05',
+                        className: 'w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white'
+                    })
+                ),
+                React.createElement('div', null,
+                    React.createElement('label', { className: 'text-xs text-slate-400 mb-1 block' }, '體脂率 (%)'),
+                    React.createElement('input', {
+                        type: 'number', step: '0.1', inputMode: 'decimal',
+                        value: bodyDataInput.bodyFat,
+                        onChange: e => setBodyDataInput(Object.assign({}, bodyDataInput, { bodyFat: e.target.value })),
+                        placeholder: '22.7',
+                        className: 'w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white'
+                    })
+                ),
+                React.createElement('div', null,
+                    React.createElement('label', { className: 'text-xs text-slate-400 mb-1 block' }, '肌肉量 (kg)'),
+                    React.createElement('input', {
+                        type: 'number', step: '0.1', inputMode: 'decimal',
+                        value: bodyDataInput.muscleMass,
+                        onChange: e => setBodyDataInput(Object.assign({}, bodyDataInput, { muscleMass: e.target.value })),
+                        placeholder: '60.9',
+                        className: 'w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white'
+                    })
+                ),
+                React.createElement('div', null,
+                    React.createElement('label', { className: 'text-xs text-slate-400 mb-1 block' }, '內臟脂肪'),
+                    React.createElement('input', {
+                        type: 'number', step: '0.1', inputMode: 'decimal',
+                        value: bodyDataInput.visceralFat,
+                        onChange: e => setBodyDataInput(Object.assign({}, bodyDataInput, { visceralFat: e.target.value })),
+                        placeholder: '8.0',
+                        className: 'w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white'
+                    })
+                ),
+                React.createElement('div', null,
+                    React.createElement('label', { className: 'text-xs text-slate-400 mb-1 block' }, '軀幹脂肪 (kg)'),
+                    React.createElement('input', {
+                        type: 'number', step: '0.1', inputMode: 'decimal',
+                        value: bodyDataInput.trunkFat,
+                        onChange: e => setBodyDataInput(Object.assign({}, bodyDataInput, { trunkFat: e.target.value })),
+                        placeholder: '9.7',
+                        className: 'w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white'
+                    })
+                ),
+                React.createElement('div', null,
+                    React.createElement('label', { className: 'text-xs text-slate-400 mb-1 block' }, '備註（選填）'),
+                    React.createElement('input', {
+                        type: 'text',
+                        value: bodyDataInput.note,
+                        onChange: e => setBodyDataInput(Object.assign({}, bodyDataInput, { note: e.target.value })),
+                        placeholder: '例如：早起空腹測量',
+                        className: 'w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white'
+                    })
+                )
+            ),
+            
+            React.createElement('div', { className: 'flex gap-2 mt-5' },
+                React.createElement('button', {
+                    onClick: () => { setShowBodyDataModal(false); },
+                    className: 'flex-1 py-3 bg-slate-800 rounded-xl text-slate-300 font-semibold'
+                }, '取消'),
+                React.createElement('button', {
+                    onClick: saveBodyData,
+                    className: 'flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl text-white font-bold'
+                }, '✓ 儲存')
+            )
+        ));
+    };
+    
+    const BodyDataPage = () => {
+        const latest = getLatestBodyData();
+        const oldest = bodyData && bodyData.length > 0 ? bodyData[0] : null;
+        
+        // 計算變化
+        const calcChange = (field) => {
+            if (!latest || !oldest || latest === oldest) return null;
+            const diff = latest[field] - oldest[field];
+            return { diff: diff, isGood: (field === 'muscleMass') ? diff > 0 : diff < 0 };
+        };
+        
+        const goalProgress = () => {
+            if (!latest || !latest.bodyFat) return 0;
+            // 從起點到目標的進度
+            const start = oldest ? oldest.bodyFat : latest.bodyFat;
+            const current = latest.bodyFat;
+            const target = bodyGoal.targetBodyFat;
+            if (start <= target) return 100;
+            const total = start - target;
+            const progress = start - current;
+            return Math.max(0, Math.min(100, Math.round((progress / total) * 100)));
+        };
+        
+        return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black text-white' },
+            React.createElement(BodyDataModal),
+            
+            // 頂部
+            React.createElement('div', { className: 'px-5 pt-6 pb-4 sticky top-0 bg-gradient-to-b from-slate-950 via-slate-950/95 to-transparent z-20 backdrop-blur-sm' },
+                React.createElement('div', { className: 'flex justify-between items-start' },
+                    React.createElement('div', null,
+                        React.createElement('p', { className: 'text-xs text-cyan-400 font-mono uppercase tracking-widest mb-1' }, '📈 身體數據'),
+                        React.createElement('h1', { className: 'text-3xl font-black bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent' }, '追蹤進度')
+                    ),
+                    React.createElement('button', {
+                        onClick: () => setCurrentPage('home'),
+                        className: 'px-3 py-2 bg-slate-800 rounded-xl text-slate-300 text-sm'
+                    }, '✕')
+                )
+            ),
+            
+            React.createElement('div', { className: 'px-5 pb-32 space-y-4' },
+                // 目標卡
+                latest && React.createElement('div', { className: 'bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/40 rounded-3xl p-5' },
+                    React.createElement('p', { className: 'text-xs text-cyan-300 uppercase tracking-widest mb-3' }, '🎯 體脂率目標'),
+                    React.createElement('div', { className: 'flex items-end justify-between mb-3' },
+                        React.createElement('div', null,
+                            React.createElement('p', { className: 'text-5xl font-black text-white' }, (latest.bodyFat || '?')),
+                            React.createElement('p', { className: 'text-xs text-slate-400' }, '目前 %')
+                        ),
+                        React.createElement('div', { className: 'text-right' },
+                            React.createElement('p', { className: 'text-3xl font-black text-cyan-300' }, bodyGoal.targetBodyFat),
+                            React.createElement('p', { className: 'text-xs text-slate-400' }, '目標 %')
+                        )
+                    ),
+                    React.createElement('div', { className: 'w-full bg-slate-800/50 rounded-full h-3 overflow-hidden mb-2' },
+                        React.createElement('div', {
+                            className: 'h-full rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 transition-all',
+                            style: { width: goalProgress() + '%' }
+                        })
+                    ),
+                    React.createElement('p', { className: 'text-xs text-cyan-200 text-center' }, '進度 ' + goalProgress() + '%')
+                ),
+                
+                // 最新數據卡
+                latest && React.createElement('div', { className: 'bg-slate-900/50 border border-slate-800 rounded-3xl p-5' },
+                    React.createElement('div', { className: 'flex justify-between items-center mb-4' },
+                        React.createElement('p', { className: 'text-sm font-bold text-white' }, '最新數據'),
+                        React.createElement('p', { className: 'text-xs text-slate-400' }, latest.date)
+                    ),
+                    React.createElement('div', { className: 'grid grid-cols-2 gap-3' },
+                        // 體重
+                        React.createElement('div', { className: 'bg-slate-800/50 rounded-xl p-3' },
+                            React.createElement('p', { className: 'text-xs text-slate-400' }, '體重'),
+                            React.createElement('p', { className: 'text-2xl font-black text-white' }, (latest.weight || '?')),
+                            React.createElement('p', { className: 'text-[10px] text-slate-500' }, 'kg')
+                        ),
+                        // 體脂率
+                        React.createElement('div', { className: 'bg-slate-800/50 rounded-xl p-3' },
+                            React.createElement('p', { className: 'text-xs text-slate-400' }, '體脂率'),
+                            React.createElement('p', { className: 'text-2xl font-black text-amber-400' }, (latest.bodyFat || '?')),
+                            React.createElement('p', { className: 'text-[10px] text-slate-500' }, '%')
+                        ),
+                        // 肌肉量
+                        latest.muscleMass && React.createElement('div', { className: 'bg-slate-800/50 rounded-xl p-3' },
+                            React.createElement('p', { className: 'text-xs text-slate-400' }, '肌肉量'),
+                            React.createElement('p', { className: 'text-2xl font-black text-emerald-400' }, latest.muscleMass),
+                            React.createElement('p', { className: 'text-[10px] text-slate-500' }, 'kg')
+                        ),
+                        // 內臟脂肪
+                        latest.visceralFat && React.createElement('div', { className: 'bg-slate-800/50 rounded-xl p-3' },
+                            React.createElement('p', { className: 'text-xs text-slate-400' }, '內臟脂肪'),
+                            React.createElement('p', { className: 'text-2xl font-black ' + (latest.visceralFat > 5 ? 'text-orange-400' : 'text-emerald-400') }, latest.visceralFat),
+                            React.createElement('p', { className: 'text-[10px] text-slate-500' }, latest.visceralFat > 5 ? '偏高' : '正常')
+                        ),
+                        // 軀幹脂肪
+                        latest.trunkFat && React.createElement('div', { className: 'bg-slate-800/50 rounded-xl p-3 col-span-2' },
+                            React.createElement('p', { className: 'text-xs text-slate-400' }, '軀幹脂肪 (重點關注區)'),
+                            React.createElement('p', { className: 'text-2xl font-black text-orange-400' }, latest.trunkFat + ' kg'),
+                            React.createElement('p', { className: 'text-[10px] text-slate-500' }, '主要堆積區，加強核心訓練可改善')
+                        )
+                    )
+                ),
+                
+                // 變化趨勢
+                bodyData.length >= 2 && React.createElement('div', { className: 'bg-slate-900/50 border border-slate-800 rounded-3xl p-5' },
+                    React.createElement('p', { className: 'text-sm font-bold text-white mb-3' }, '📊 累積變化'),
+                    React.createElement('div', { className: 'space-y-2' },
+                        ['weight', 'bodyFat', 'muscleMass', 'visceralFat', 'trunkFat'].map(function(field) {
+                            const fieldNames = { 'weight': '體重', 'bodyFat': '體脂率', 'muscleMass': '肌肉量', 'visceralFat': '內臟脂肪', 'trunkFat': '軀幹脂肪' };
+                            const units = { 'weight': 'kg', 'bodyFat': '%', 'muscleMass': 'kg', 'visceralFat': '', 'trunkFat': 'kg' };
+                            const change = calcChange(field);
+                            if (!change) return null;
+                            const arrow = change.diff > 0 ? '↑' : change.diff < 0 ? '↓' : '→';
+                            const colorClass = change.isGood ? 'text-emerald-400' : 'text-rose-400';
+                            return React.createElement('div', { 
+                                key: field, 
+                                className: 'flex justify-between items-center text-sm' 
+                            },
+                                React.createElement('span', { className: 'text-slate-400' }, fieldNames[field]),
+                                React.createElement('span', { className: 'font-mono ' + colorClass }, 
+                                    arrow + ' ' + Math.abs(change.diff).toFixed(1) + units[field]
+                                )
+                            );
+                        })
+                    )
+                ),
+                
+                // 新增按鈕
+                React.createElement('button', {
+                    onClick: () => setShowBodyDataModal(true),
+                    className: 'w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl text-white font-bold text-base shadow-xl shadow-cyan-500/30'
+                }, '➕ 新增今日數據'),
+                
+                // 歷史紀錄
+                bodyData.length > 0 && React.createElement('div', null,
+                    React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-widest mb-2 px-1' }, '📅 歷史紀錄 (' + bodyData.length + ' 筆)'),
+                    React.createElement('div', { className: 'space-y-2' },
+                        bodyData.slice().reverse().map(function(record, idx) {
+                            const realIdx = bodyData.length - 1 - idx;
+                            return React.createElement('div', {
+                                key: realIdx,
+                                className: 'bg-slate-900/50 border border-slate-800 rounded-2xl p-3'
+                            },
+                                React.createElement('div', { className: 'flex justify-between items-start mb-2' },
+                                    React.createElement('div', null,
+                                        React.createElement('p', { className: 'font-bold text-white text-sm' }, record.date),
+                                        record.note && React.createElement('p', { className: 'text-xs text-slate-500 mt-0.5' }, record.note)
+                                    ),
+                                    React.createElement('button', {
+                                        onClick: () => deleteBodyData(realIdx),
+                                        className: 'text-rose-400 text-xs'
+                                    }, '刪除')
+                                ),
+                                React.createElement('div', { className: 'flex flex-wrap gap-2 text-xs' },
+                                    record.weight && React.createElement('span', { className: 'px-2 py-0.5 bg-slate-800 rounded text-slate-300' }, '體重 ' + record.weight + 'kg'),
+                                    record.bodyFat && React.createElement('span', { className: 'px-2 py-0.5 bg-slate-800 rounded text-amber-300' }, '體脂 ' + record.bodyFat + '%'),
+                                    record.muscleMass && React.createElement('span', { className: 'px-2 py-0.5 bg-slate-800 rounded text-emerald-300' }, '肌肉 ' + record.muscleMass + 'kg'),
+                                    record.visceralFat && React.createElement('span', { className: 'px-2 py-0.5 bg-slate-800 rounded text-orange-300' }, '內臟 ' + record.visceralFat),
+                                    record.trunkFat && React.createElement('span', { className: 'px-2 py-0.5 bg-slate-800 rounded text-rose-300' }, '軀幹 ' + record.trunkFat + 'kg')
+                                )
+                            );
+                        })
+                    )
+                ),
+                
+                // 提示
+                React.createElement('div', { className: 'bg-blue-950/30 border border-blue-700/30 rounded-2xl p-4' },
+                    React.createElement('p', { className: 'text-xs text-blue-300 leading-relaxed' }, 
+                        '💡 建議：每週同一時間（早起空腹）測量一次。InBody 體組成分析儀最準。'
+                    )
+                )
+            ),
+            
+            React.createElement(BottomTabs)
+        );
+    };
+    
+    // ============================================
     // 動作資料庫頁面
     // ============================================
     const ExerciseLibraryPage = () => {
@@ -2396,35 +3328,57 @@ function FitnessApp() {
                         filteredExercises.map(function(name) {
                             var ex = exerciseDB[name];
                             var isFav = favoriteExercises.indexOf(name) >= 0;
+                            var score = ex.mindMuscleScore || 0;
+                            // 計算星數（最多 5 顆，對應 0-10 分）
+                            var stars = Math.round(score / 2);
+                            var starsStr = '⭐'.repeat(stars);
                             return React.createElement('div', {
                                 key: name,
                                 className: 'bg-slate-900/50 border border-slate-800 rounded-2xl p-4'
                             },
-                                React.createElement('div', { className: 'flex justify-between items-start mb-2' },
-                                    React.createElement('div', { className: 'flex-1' },
-                                        React.createElement('p', { className: 'font-bold text-white' }, name),
-                                        React.createElement('p', { className: 'text-xs text-slate-500 mt-0.5' }, ex.defaultReps + ' · ' + (ex.equipment || []).join('+'))
+                                // 上半部：人形圖 + 名稱 + 收藏
+                                React.createElement('div', { className: 'flex gap-3 mb-3' },
+                                    // 人形圖示
+                                    React.createElement('div', { className: 'flex-shrink-0' },
+                                        React.createElement(BodyDiagram, { 
+                                            primary: ex.primary, 
+                                            secondary: ex.secondary || [],
+                                            size: 50 
+                                        })
                                     ),
-                                    React.createElement('button', {
-                                        onClick: function() { toggleFavorite(name); },
-                                        className: 'text-2xl ' + (isFav ? 'text-amber-400' : 'text-slate-600')
-                                    }, isFav ? '★' : '☆')
+                                    // 名稱 + 評分
+                                    React.createElement('div', { className: 'flex-1 min-w-0' },
+                                        React.createElement('div', { className: 'flex justify-between items-start' },
+                                            React.createElement('p', { className: 'font-bold text-white' }, name),
+                                            React.createElement('button', {
+                                                onClick: function() { toggleFavorite(name); },
+                                                className: 'text-2xl ml-2 ' + (isFav ? 'text-amber-400' : 'text-slate-600')
+                                            }, isFav ? '★' : '☆')
+                                        ),
+                                        // 感受度星星
+                                        React.createElement('p', { className: 'text-xs mt-0.5' },
+                                            React.createElement('span', { className: 'text-amber-400' }, starsStr),
+                                            React.createElement('span', { className: 'text-slate-500 ml-1' }, '(' + score + '/10)')
+                                        ),
+                                        React.createElement('p', { className: 'text-xs text-slate-500 mt-0.5' }, ex.defaultReps + ' · ' + (ex.equipment || []).join('+'))
+                                    )
                                 ),
+                                // 標籤
                                 React.createElement('div', { className: 'flex flex-wrap gap-1.5 mb-2' },
                                     ex.primary.map(function(m, i) {
                                         return React.createElement('span', {
                                             key: 'p' + i,
-                                            className: 'text-[10px] px-2 py-0.5 bg-violet-500/20 text-violet-300 border border-violet-500/30 rounded-full'
+                                            className: 'text-[10px] px-2 py-0.5 bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-full'
                                         }, '主：' + m);
                                     }),
                                     (ex.secondary || []).map(function(m, i) {
                                         return React.createElement('span', {
                                             key: 's' + i,
-                                            className: 'text-[10px] px-2 py-0.5 bg-slate-700 text-slate-400 border border-slate-600 rounded-full'
+                                            className: 'text-[10px] px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full'
                                         }, '副：' + m);
                                     }),
                                     React.createElement('span', {
-                                        className: 'text-[10px] px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full'
+                                        className: 'text-[10px] px-2 py-0.5 bg-slate-700 text-slate-400 border border-slate-600 rounded-full'
                                     }, '★'.repeat(ex.difficulty))
                                 ),
                                 React.createElement('button', {
@@ -2617,6 +3571,10 @@ function FitnessApp() {
         return React.createElement(ExerciseLibraryPage);
     }
     
+    if (currentPage === 'bodydata') {
+        return React.createElement(BodyDataPage);
+    }
+    
     if (currentPage === 'home') {
         // 如果在食物分頁，顯示 FoodPage 包在底部 tab bar 裡
         if (mainTab === 'food') {
@@ -2628,6 +3586,18 @@ function FitnessApp() {
         const today = new Date().getDay();
         const dayMap = { 1: 'monday', 2: 'tuesday', 4: 'thursday', 5: 'friday' };
         const recommendedDay = dayMap[today];
+        // 今日目標卡片資料（v13）
+        const latestBody = bodyData && bodyData.length > 0 ? bodyData[bodyData.length - 1] : null;
+        const goalProgress = (function() {
+            if (!latestBody || !latestBody.bodyFat || bodyData.length < 1) return 0;
+            const start = bodyData[0].bodyFat;
+            const current = latestBody.bodyFat;
+            const target = bodyGoal.targetBodyFat;
+            if (start <= target) return 100;
+            const total = start - target;
+            const progress = start - current;
+            return Math.max(0, Math.min(100, Math.round((progress / total) * 100)));
+        })();
         
         return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black text-white' },
             React.createElement(Toast),
@@ -2648,6 +3618,47 @@ function FitnessApp() {
                 )
             ),
             React.createElement('div', { className: 'px-5 pb-24 space-y-4' },
+                // 🎯 今日目標卡片（v13 新）
+                latestBody && latestBody.bodyFat && React.createElement('div', { 
+                    className: 'bg-gradient-to-br from-cyan-500/15 to-blue-500/15 border border-cyan-500/40 rounded-3xl p-4',
+                    onClick: () => setCurrentPage('bodydata')
+                },
+                    React.createElement('div', { className: 'flex justify-between items-center mb-3' },
+                        React.createElement('p', { className: 'text-xs text-cyan-400 uppercase tracking-widest' }, '🎯 今日目標'),
+                        React.createElement('p', { className: 'text-[10px] text-slate-500' }, '點擊查看詳情 →')
+                    ),
+                    React.createElement('div', { className: 'flex items-end justify-between mb-2' },
+                        React.createElement('div', null,
+                            React.createElement('div', { className: 'flex items-baseline gap-1' },
+                                React.createElement('span', { className: 'text-3xl font-black text-amber-400' }, latestBody.bodyFat),
+                                React.createElement('span', { className: 'text-sm text-slate-400' }, '%')
+                            ),
+                            React.createElement('p', { className: 'text-[10px] text-slate-400' }, '目前體脂率')
+                        ),
+                        React.createElement('div', { className: 'text-slate-600 text-2xl' }, '→'),
+                        React.createElement('div', null,
+                            React.createElement('div', { className: 'flex items-baseline gap-1' },
+                                React.createElement('span', { className: 'text-3xl font-black text-cyan-300' }, bodyGoal.targetBodyFat),
+                                React.createElement('span', { className: 'text-sm text-slate-400' }, '%')
+                            ),
+                            React.createElement('p', { className: 'text-[10px] text-slate-400' }, '目標體脂率')
+                        )
+                    ),
+                    React.createElement('div', { className: 'w-full bg-slate-800/50 rounded-full h-2 overflow-hidden mb-1' },
+                        React.createElement('div', {
+                            className: 'h-full rounded-full bg-gradient-to-r from-cyan-400 to-blue-400 transition-all',
+                            style: { width: goalProgress + '%' }
+                        })
+                    ),
+                    React.createElement('p', { className: 'text-xs text-cyan-200 text-center' }, '進度 ' + goalProgress + '%'),
+                    latestBody.trunkFat && latestBody.trunkFat > 8 && React.createElement('div', { 
+                        className: 'mt-3 pt-3 border-t border-cyan-500/20' 
+                    },
+                        React.createElement('p', { className: 'text-xs text-rose-300' }, 
+                            '🔥 軀幹脂肪 ' + latestBody.trunkFat + 'kg - 建議多做軀幹強化訓練'
+                        )
+                    )
+                ),
                 React.createElement('div', { className: 'bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-3xl p-5' },
                     React.createElement('div', { className: 'flex justify-between items-center' },
                         React.createElement('div', null,
@@ -2712,6 +3723,76 @@ function FitnessApp() {
                             )
                         );
                     })
+                ),
+                // 熱身/收操快速進入按鈕
+                React.createElement('div', { className: 'grid grid-cols-2 gap-2' },
+                    React.createElement('button', {
+                        onClick: () => {
+                            // 預設用標準訓練日的熱身
+                            const day = (function() {
+                                const today = new Date().getDay();
+                                const dayMap = { 1: 'monday', 2: 'tuesday', 4: 'thursday', 5: 'friday' };
+                                return dayMap[today] || 'monday';
+                            })();
+                            setSelectedDay(day);
+                            setTrainingPhase('warmup');
+                            setWarmupIdx(0);
+                            const map = warmupCooldownMap[day];
+                            if (map && map.warmup && map.warmup.length > 0) {
+                                const firstWarmup = warmupDB[map.warmup[0]];
+                                setPhaseSecondsLeft(firstWarmup ? firstWarmup.duration : 30);
+                                setPhasePaused(false);
+                                setCurrentPage('training');
+                            }
+                        },
+                        className: 'p-4 bg-orange-950/30 border border-orange-700/30 rounded-2xl flex flex-col items-center gap-1'
+                    },
+                        React.createElement('span', { className: 'text-2xl' }, '🔥'),
+                        React.createElement('span', { className: 'text-xs font-semibold text-orange-300' }, '單獨熱身')
+                    ),
+                    React.createElement('button', {
+                        onClick: () => {
+                            const day = (function() {
+                                const today = new Date().getDay();
+                                const dayMap = { 1: 'monday', 2: 'tuesday', 4: 'thursday', 5: 'friday' };
+                                return dayMap[today] || 'monday';
+                            })();
+                            setSelectedDay(day);
+                            setTrainingPhase('cooldown');
+                            setCooldownIdx(0);
+                            const map = warmupCooldownMap[day];
+                            if (map && map.cooldown && map.cooldown.length > 0) {
+                                const firstCooldown = cooldownDB[map.cooldown[0]];
+                                setPhaseSecondsLeft(firstCooldown ? firstCooldown.duration : 30);
+                                setPhasePaused(false);
+                                setCurrentPage('training');
+                            }
+                        },
+                        className: 'p-4 bg-emerald-950/30 border border-emerald-700/30 rounded-2xl flex flex-col items-center gap-1'
+                    },
+                        React.createElement('span', { className: 'text-2xl' }, '🧘'),
+                        React.createElement('span', { className: 'text-xs font-semibold text-emerald-300' }, '單獨收操')
+                    )
+                ),
+                // 身體數據按鈕（v13 新）
+                React.createElement('button', {
+                    onClick: () => setCurrentPage('bodydata'),
+                    className: 'w-full p-4 bg-gradient-to-br from-cyan-950/40 to-blue-950/40 border border-cyan-700/40 rounded-2xl flex items-center justify-between'
+                },
+                    React.createElement('div', { className: 'flex items-center gap-3' },
+                        React.createElement('span', { className: 'text-xl' }, '📈'),
+                        React.createElement('div', { className: 'text-left' },
+                            React.createElement('p', { className: 'font-semibold text-white' }, '身體數據'),
+                            React.createElement('p', { className: 'text-[10px] text-cyan-400' }, 
+                                (function() {
+                                    const latest = bodyData && bodyData.length > 0 ? bodyData[bodyData.length - 1] : null;
+                                    if (!latest) return '尚未記錄';
+                                    return '最新：' + latest.bodyFat + '% 體脂 · ' + latest.weight + 'kg';
+                                })()
+                            )
+                        )
+                    ),
+                    React.createElement(Icon, { name: 'chevronRight', size: 20, className: 'text-cyan-500' })
                 ),
                 React.createElement('button', {
                     onClick: () => setCurrentPage('library'),
@@ -2825,9 +3906,129 @@ function FitnessApp() {
     }
 
     // ============================================
+    // 熱身/收操頁面渲染
+    // ============================================
+    const renderPhasePage = (isWarmup) => {
+        const map = warmupCooldownMap[selectedDay];
+        if (!map) return null;
+        
+        const phaseList = isWarmup ? map.warmup : map.cooldown;
+        const phaseIdx = isWarmup ? warmupIdx : cooldownIdx;
+        const phaseDB = isWarmup ? warmupDB : cooldownDB;
+        const currentName = phaseList[phaseIdx];
+        const current = phaseDB[currentName];
+        
+        if (!current) return null;
+        
+        const totalDuration = current.duration;
+        const progressPct = ((totalDuration - phaseSecondsLeft) / totalDuration) * 100;
+        
+        const phaseColor = isWarmup ? 'orange' : 'emerald';
+        const phaseIcon = isWarmup ? '🔥' : '🧘';
+        const phaseName = isWarmup ? '熱身' : '收操';
+        
+        return React.createElement('div', { 
+            className: 'min-h-screen bg-gradient-to-br ' + (isWarmup ? 'from-orange-950 via-slate-900 to-black' : 'from-emerald-950 via-slate-900 to-black') + ' text-white' 
+        },
+            React.createElement('div', { className: 'sticky top-0 z-20 bg-slate-950/95 backdrop-blur border-b border-slate-800 px-5 pt-4 pb-3' },
+                React.createElement('div', { className: 'flex justify-between items-center mb-2' },
+                    React.createElement('button', {
+                        onClick: function() { 
+                            if (confirm('確定要結束本次訓練嗎？')) {
+                                setCurrentPage('home');
+                                setTrainingPhase('main');
+                            }
+                        },
+                        className: 'text-slate-400'
+                    }, React.createElement(Icon, { name: 'x', size: 20 })),
+                    React.createElement('p', { className: 'text-xs font-mono' }, 
+                        React.createElement('span', { className: isWarmup ? 'text-orange-400' : 'text-emerald-400' },
+                            phaseIcon + ' ' + phaseName + ' ' + (phaseIdx + 1) + '/' + phaseList.length
+                        )
+                    ),
+                    React.createElement('button', {
+                        onClick: skipEntirePhase,
+                        className: 'text-xs text-slate-500'
+                    }, isWarmup ? '跳過熱身 →' : '結束 →')
+                ),
+                React.createElement('div', { className: 'w-full bg-slate-800 rounded-full h-1.5 overflow-hidden' },
+                    React.createElement('div', {
+                        className: 'h-full rounded-full transition-all duration-500 ' + (isWarmup ? 'bg-orange-500' : 'bg-emerald-500'),
+                        style: { width: ((phaseIdx / phaseList.length) * 100) + '%' }
+                    })
+                )
+            ),
+            React.createElement('div', { className: 'px-5 py-6 space-y-4' },
+                React.createElement('div', { className: 'bg-slate-900/70 border border-slate-800 rounded-3xl p-6 text-center' },
+                    React.createElement('p', { className: 'text-xs uppercase tracking-widest mb-2 ' + (isWarmup ? 'text-orange-400' : 'text-emerald-400') }, phaseIcon + ' ' + phaseName + '中'),
+                    React.createElement('h2', { className: 'text-2xl font-bold text-white mb-3' }, currentName),
+                    React.createElement('div', { className: 'my-6' },
+                        React.createElement('p', { className: 'text-7xl font-black font-mono ' + (isWarmup ? 'text-orange-300' : 'text-emerald-300') }, phaseSecondsLeft),
+                        React.createElement('p', { className: 'text-sm text-slate-400 mt-2' }, '秒')
+                    ),
+                    React.createElement('div', { className: 'w-full bg-slate-800 rounded-full h-2 overflow-hidden mb-4' },
+                        React.createElement('div', {
+                            className: 'h-full rounded-full transition-all duration-1000 ' + (isWarmup ? 'bg-gradient-to-r from-orange-500 to-orange-400' : 'bg-gradient-to-r from-emerald-500 to-emerald-400'),
+                            style: { width: progressPct + '%' }
+                        })
+                    ),
+                    React.createElement('div', { className: 'flex gap-2 justify-center' },
+                        React.createElement('button', {
+                            onClick: function() { setPhasePaused(!phasePaused); },
+                            className: 'px-5 py-2.5 bg-slate-800 rounded-xl text-white font-semibold text-sm flex items-center gap-2'
+                        }, React.createElement(Icon, { name: phasePaused ? 'play' : 'pause', size: 16 }),
+                           phasePaused ? '繼續' : '暫停'),
+                        React.createElement('button', {
+                            onClick: skipPhaseExercise,
+                            className: 'px-5 py-2.5 bg-slate-800 rounded-xl text-slate-300 font-semibold text-sm'
+                        }, '⏭ 下一個')
+                    )
+                ),
+                React.createElement('div', { className: (isWarmup ? 'bg-orange-950/30 border border-orange-700/30' : 'bg-emerald-950/30 border border-emerald-700/30') + ' rounded-2xl p-4' },
+                    React.createElement('p', { className: 'text-xs font-bold mb-2 ' + (isWarmup ? 'text-orange-400' : 'text-emerald-400') }, '💡 為什麼要做這個？'),
+                    React.createElement('p', { className: 'text-sm text-white leading-relaxed' }, current.why)
+                ),
+                React.createElement('div', { className: 'bg-slate-900/50 border border-slate-800 rounded-2xl p-4' },
+                    React.createElement('p', { className: 'text-xs text-slate-400 font-bold mb-2 uppercase tracking-wider' }, '📋 怎麼做'),
+                    React.createElement('ol', { className: 'space-y-2' },
+                        current.instructions.map(function(step, idx) {
+                            return React.createElement('li', { 
+                                key: idx,
+                                className: 'flex gap-2 text-sm text-slate-200'
+                            },
+                                React.createElement('span', { className: 'font-bold ' + (isWarmup ? 'text-orange-400' : 'text-emerald-400') }, (idx + 1) + '.'),
+                                React.createElement('span', null, step)
+                            );
+                        })
+                    )
+                ),
+                React.createElement('div', { className: 'bg-cyan-950/30 border border-cyan-700/30 rounded-2xl p-3' },
+                    React.createElement('p', { className: 'text-xs text-cyan-300' }, '✨ ' + current.tips)
+                ),
+                !isWarmup && current.massageHint && React.createElement('div', { className: 'bg-purple-950/30 border border-purple-700/30 rounded-2xl p-3' },
+                    React.createElement('p', { className: 'text-xs text-purple-300' }, '💆 放鬆建議：' + current.massageHint)
+                ),
+                phaseIdx + 1 < phaseList.length && React.createElement('div', { className: 'bg-slate-900/30 border border-slate-800 rounded-2xl p-3' },
+                    React.createElement('p', { className: 'text-[10px] text-slate-500 uppercase tracking-wider mb-1' }, '下一個動作'),
+                    React.createElement('p', { className: 'text-sm text-slate-300' }, phaseList[phaseIdx + 1])
+                )
+            )
+        );
+    };
+    
+    // ============================================
     // 訓練頁
     // ============================================
     if (currentPage === 'training' && selectedDay) {
+        // 熱身階段
+        if (trainingPhase === 'warmup') {
+            return renderPhasePage(true);
+        }
+        // 收操階段
+        if (trainingPhase === 'cooldown') {
+            return renderPhasePage(false);
+        }
+        // 主訓練階段（原本邏輯）
         const exercises = getDayExercises(selectedDay);
         const currentExName = exercises[currentExerciseIdx];
         const ex = getExerciseConfig(currentExName);
@@ -2883,6 +4084,40 @@ function FitnessApp() {
                         )
                     )
                 ),
+                // 上次紀錄 + 感受度提示
+                (function() {
+                    // 計算上次該動作的紀錄
+                    var lastRecord = null;
+                    var dates = Object.keys(progress).sort().reverse();
+                    for (var i = 0; i < dates.length; i++) {
+                        var d = dates[i];
+                        if (progress[d] && progress[d][selectedDay]) {
+                            var sets = progress[d][selectedDay][currentExerciseIdx];
+                            if (sets && sets.length > 0) {
+                                lastRecord = { date: d, sets: sets };
+                                break;
+                            }
+                        }
+                    }
+                    var formatRecord = function(s) {
+                        if (typeof s === 'object' && s.reps != null) {
+                            return s.reps + (s.weight != null ? ' (' + s.weight + 'kg)' : '');
+                        }
+                        return s;
+                    };
+                    return React.createElement('div', { className: 'bg-cyan-950/30 border border-cyan-700/30 rounded-2xl p-4 mb-3' },
+                        React.createElement('p', { className: 'text-xs text-cyan-400 mb-2 font-semibold' }, '🎯 ' + (ex.primary || []).join('+') + ' 訓練重點'),
+                        React.createElement('p', { className: 'text-sm text-white' }, '感受度評分：' + 
+                            '⭐'.repeat(Math.round((ex.mindMuscleScore || 0) / 2)) + 
+                            ' (' + (ex.mindMuscleScore || 0) + '/10)'
+                        ),
+                        lastRecord && React.createElement('p', { className: 'text-xs text-slate-300 mt-2' }, 
+                            '📊 上次紀錄 (' + lastRecord.date + ')：' + 
+                            lastRecord.sets.map(formatRecord).join(', ')
+                        )
+                    );
+                })(),
+                
                 React.createElement('div', { className: 'bg-slate-900/50 border border-slate-800 rounded-3xl p-5' },
                     React.createElement('p', { className: 'text-xs text-slate-400 uppercase tracking-wider mb-3' }, '本動作進度'),
                     React.createElement('div', { className: 'grid grid-cols-4 gap-2 mb-4' },
@@ -2902,7 +4137,15 @@ function FitnessApp() {
                             },
                                 isDone ? React.createElement(React.Fragment, null,
                                     React.createElement(Icon, { name: 'check', size: 20 }),
-                                    React.createElement('span', { className: 'text-xs font-bold mt-1' }, (setsForExercise[idx]) + (isTimedEx ? '秒' : '下'))
+                                    React.createElement('span', { className: 'text-xs font-bold mt-1' }, 
+                                        (function() {
+                                            var s = setsForExercise[idx];
+                                            if (typeof s === 'object' && s.reps != null) {
+                                                return s.reps + (isTimedEx ? '秒' : '下') + (s.weight != null ? '\n' + s.weight + 'kg' : '');
+                                            }
+                                            return s + (isTimedEx ? '秒' : '下');
+                                        })()
+                                    )
                                 ) : React.createElement('span', { className: 'text-xs font-bold' }, '第' + (idx + 1) + '組')
                             );
                         })
@@ -3017,8 +4260,8 @@ function FitnessApp() {
                     React.createElement('button', {
                         onClick: () => {
                             if (isLastExercise) {
-                                alert('恭喜完成今日訓練！💪');
-                                setCurrentPage('home');
+                                // 主訓練完成 → 進入收操階段
+                                enterCooldownPhase();
                             } else {
                                 setCurrentExerciseIdx(currentExerciseIdx + 1);
                                 setTimerSeconds(0);
@@ -3028,7 +4271,7 @@ function FitnessApp() {
                             }
                         },
                         className: 'flex-1 py-4 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl font-bold text-white shadow-2xl shadow-cyan-500/30 flex items-center justify-center gap-2'
-                    }, isLastExercise ? '完成訓練 ✓' : React.createElement(React.Fragment, null, '下一個 ', React.createElement(Icon, { name: 'chevronRight', size: 20 })))
+                    }, isLastExercise ? '🧘 進入收操' : React.createElement(React.Fragment, null, '下一個 ', React.createElement(Icon, { name: 'chevronRight', size: 20 })))
                 )
             )
         );
@@ -3089,7 +4332,14 @@ function FitnessApp() {
                                             className: 'flex justify-between text-xs'
                                         },
                                             React.createElement('span', { className: 'text-slate-400' }, exercises[idx]),
-                                            React.createElement('span', { className: 'text-emerald-400 font-mono' }, (reps.join(' • ')) + '下')
+                                            React.createElement('span', { className: 'text-emerald-400 font-mono' }, 
+                                                reps.map(function(r) {
+                                                    if (typeof r === 'object' && r.reps != null) {
+                                                        return r.reps + (r.weight != null ? '(' + r.weight + 'kg)' : '');
+                                                    }
+                                                    return r;
+                                                }).join(' • ')
+                                            )
                                         ))
                                     )
                                 );
