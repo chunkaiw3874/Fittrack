@@ -2547,21 +2547,34 @@ function FitnessApp() {
     }, React.createElement(Icon, { name: 'check', size: 16 }), '已儲存') : null;
 
     // Input Modal
+    // InputModal 用 uncontrolled inputs（用 ref 直接操作 DOM，不透過 state）
+    // 這樣不論父組件如何 re-render，input 都不會重建、不會失焦
     const repsInputRef = useRef(null);
-    const wasModalOpen = useRef(false);
+    const weightInputRef = useRef(null);
     
-    // 只在 modal 從關閉變為開啟時 focus 一次
+    // Modal 開啟時清空並聚焦
     useEffect(() => {
-        if (showInputModal && !wasModalOpen.current) {
-            wasModalOpen.current = true;
-            // 延遲一下等 DOM 渲染完成
+        if (showInputModal) {
             setTimeout(() => {
-                if (repsInputRef.current) repsInputRef.current.focus();
+                if (repsInputRef.current) {
+                    repsInputRef.current.value = '';
+                    repsInputRef.current.focus();
+                }
+                if (weightInputRef.current) {
+                    weightInputRef.current.value = '';
+                }
             }, 100);
-        } else if (!showInputModal) {
-            wasModalOpen.current = false;
         }
     }, [showInputModal]);
+    
+    const handleSubmitInput = () => {
+        const n = parseInt(repsInputRef.current ? repsInputRef.current.value : '');
+        const w = parseFloat(weightInputRef.current ? weightInputRef.current.value : '');
+        if (n && n > 0) {
+            recordSet(n, isNaN(w) ? null : w);
+            setShowInputModal(null);
+        }
+    };
     
     const InputModal = () => {
         if (!showInputModal) return null;
@@ -2575,46 +2588,42 @@ function FitnessApp() {
             React.createElement('h3', { className: 'text-lg font-bold text-cyan-300 mb-2' }, '第 ' + (showInputModal.setNum) + ' 組完成？'),
             React.createElement('p', { className: 'text-sm text-slate-400 mb-4' }, '目標：' + (showInputModal.target)),
             
-            // 次數輸入（用 ref 控制只在開啟瞬間 focus，避免每次重 render 都搶焦點）
+            // 次數輸入（uncontrolled - 不用 value+onChange）
             React.createElement('label', { className: 'text-xs text-slate-400 mb-1 block' }, '完成幾下'),
             React.createElement('input', {
                 ref: repsInputRef,
                 type: 'number',
                 inputMode: 'numeric',
-                value: inputValue,
-                onChange: e => setInputValue(e.target.value),
                 placeholder: '次數',
+                onKeyDown: function(e) {
+                    if (e.key === 'Enter') {
+                        if (weightInputRef.current) weightInputRef.current.focus();
+                    }
+                },
                 className: 'w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-2xl font-bold text-center mb-3'
             }),
             
-            // 重量輸入（選填）
+            // 重量輸入（uncontrolled）
             React.createElement('label', { className: 'text-xs text-slate-400 mb-1 block' }, '使用重量（kg）- 可選'),
             React.createElement('input', {
+                ref: weightInputRef,
                 type: 'number',
                 inputMode: 'decimal',
                 step: '0.5',
-                value: inputWeight,
-                onChange: e => setInputWeight(e.target.value),
                 placeholder: '重量 kg',
+                onKeyDown: function(e) {
+                    if (e.key === 'Enter') handleSubmitInput();
+                },
                 className: 'w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-xl font-bold text-center mb-4'
             }),
             
             React.createElement('div', { className: 'flex gap-2' },
                 React.createElement('button', {
-                    onClick: () => { setShowInputModal(null); setInputValue(''); setInputWeight(''); },
+                    onClick: () => { setShowInputModal(null); },
                     className: 'flex-1 py-3 bg-slate-800 rounded-xl text-slate-300 font-semibold'
                 }, '取消'),
                 React.createElement('button', {
-                    onClick: () => {
-                        const n = parseInt(inputValue);
-                        const w = parseFloat(inputWeight);
-                        if (n && n > 0) {
-                            recordSet(n, isNaN(w) ? null : w);
-                            setShowInputModal(null);
-                            setInputValue('');
-                            setInputWeight('');
-                        }
-                    },
+                    onClick: handleSubmitInput,
                     className: 'flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl text-white font-bold'
                 }, '✓ 記錄')
             )
