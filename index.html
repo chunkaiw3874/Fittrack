@@ -123,6 +123,7 @@ window.addEventListener('error', function(e) {
 </script>
 
 <script>
+
 // ============================================
 // FitTrack - Kevin 的健身計畫 PWA
 // ============================================
@@ -1660,6 +1661,7 @@ const warmupDB = {
     },
     '動態弓箭步': {
         englishName: 'dynamic lunges',
+        isBilateral: true,
         duration: 30,
         targetRegion: ['下肢'],
         why: '同時啟動股四頭肌、臀肌、髖屈肌，是深蹲、弓步前的最佳暖身',
@@ -1668,6 +1670,7 @@ const warmupDB = {
     },
     '世界最棒伸展': {
         englishName: 'worlds greatest stretch',
+        isBilateral: true,
         duration: 60,
         targetRegion: ['下肢', '核心'],
         why: '一個動作活動到髖、胸椎、腿後肌、肩膀，效率最高的全身動態伸展',
@@ -1714,6 +1717,7 @@ const warmupDB = {
 const cooldownDB = {
     '胸大肌伸展': {
         englishName: 'doorway chest stretch',
+        isBilateral: true,
         duration: 30,
         targetRegion: ['上肢推'],
         why: '訓練後胸肌會緊繃，伸展可以改善「圓肩」和姿勢',
@@ -1723,6 +1727,7 @@ const cooldownDB = {
     },
     '肩三角肌伸展': {
         englishName: 'shoulder cross body stretch',
+        isBilateral: true,
         duration: 30,
         targetRegion: ['上肢推', '上肢拉'],
         why: '緩解三角肌緊繃，改善肩膀活動度',
@@ -1732,6 +1737,7 @@ const cooldownDB = {
     },
     '三頭肌伸展': {
         englishName: 'tricep overhead stretch',
+        isBilateral: true,
         duration: 30,
         targetRegion: ['上肢推'],
         why: '推類訓練後三頭肌容易緊繃，伸展提升手臂活動度',
@@ -1757,6 +1763,7 @@ const cooldownDB = {
     },
     '四頭肌伸展': {
         englishName: 'standing quad stretch',
+        isBilateral: true,
         duration: 30,
         targetRegion: ['下肢'],
         why: '訓練後股四頭肌會緊繃，伸展改善膝蓋活動度',
@@ -1766,6 +1773,7 @@ const cooldownDB = {
     },
     '腿後肌伸展': {
         englishName: 'hamstring stretch',
+        isBilateral: true,
         duration: 30,
         targetRegion: ['下肢'],
         why: '腿後肌緊繃會影響深蹲深度和下背健康',
@@ -1775,6 +1783,7 @@ const cooldownDB = {
     },
     '髖屈肌伸展': {
         englishName: 'hip flexor stretch',
+        isBilateral: true,
         duration: 30,
         targetRegion: ['下肢', '核心'],
         why: '現代人久坐讓髖屈肌縮短，這個伸展是「改善姿勢」的神器',
@@ -1783,6 +1792,7 @@ const cooldownDB = {
     },
     '臀部 4 字伸展': {
         englishName: 'figure 4 stretch',
+        isBilateral: true,
         duration: 30,
         targetRegion: ['下肢'],
         why: '伸展臀大肌、梨狀肌，緩解下背痛',
@@ -1792,6 +1802,7 @@ const cooldownDB = {
     },
     '小腿伸展': {
         englishName: 'calf stretch wall',
+        isBilateral: true,
         duration: 30,
         targetRegion: ['下肢'],
         why: '小腿緊繃會影響跑步姿勢和深蹲深度',
@@ -1885,6 +1896,11 @@ function FitnessApp() {
     const [cooldownIdx, setCooldownIdx] = useState(0);
     const [phaseSecondsLeft, setPhaseSecondsLeft] = useState(0);
     const [phasePaused, setPhasePaused] = useState(false);
+    // v14: 雙邊動作的當前邊（'left' | 'right'）
+    const [bilateralSide, setBilateralSide] = useState('left');
+    // v14: 子階段（'countdown' = 3秒預備倒數, 'exercising' = 執行中, 'done' = 完成等待手動進入下一個）
+    const [phaseSubState, setPhaseSubState] = useState('countdown');
+    const [countdownSec, setCountdownSec] = useState(3);
     // 動作搜尋頁狀態
     const [searchQuery, setSearchQuery] = useState('');
     const [filterMuscles, setFilterMuscles] = useState([]);
@@ -1902,6 +1918,8 @@ function FitnessApp() {
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     // 自動計時模式新增的 state
     const [autoMode, setAutoMode] = useState('idle'); // idle, exercising, resting, preparing, done
+    // v14: 計時動作的目標秒數（可調整）
+    const [autoTargetSec, setAutoTargetSec] = useState(0);
     const [autoSecondsLeft, setAutoSecondsLeft] = useState(0);
     const [soundEnabled, setSoundEnabled] = useState(true);
     const [vibrationEnabled, setVibrationEnabled] = useState(false);
@@ -2075,7 +2093,8 @@ function FitnessApp() {
         const currentExName = currentExercises[currentExerciseIdx];
         const ex = exerciseDB[currentExName];
         if (!ex) return;
-        var seconds = parseSeconds(ex.defaultReps);
+        // v14: 優先用上次的紀錄秒數（如果有的話）
+        var seconds = autoTargetSec || parseSeconds(ex.defaultReps);
         setAutoSecondsLeft(seconds);
         setAutoMode('exercising');
     };
@@ -2344,6 +2363,9 @@ function FitnessApp() {
             const firstWarmup = warmupDB[map.warmup[0]];
             setPhaseSecondsLeft(firstWarmup ? firstWarmup.duration : 30);
             setPhasePaused(false);
+            setBilateralSide('left');
+            setPhaseSubState('countdown');
+            setCountdownSec(3);
         } else {
             setTrainingPhase('main');
         }
@@ -2366,6 +2388,9 @@ function FitnessApp() {
             const firstCooldown = cooldownDB[map.cooldown[0]];
             setPhaseSecondsLeft(firstCooldown ? firstCooldown.duration : 30);
             setPhasePaused(false);
+            setBilateralSide('left');
+            setPhaseSubState('countdown');
+            setCountdownSec(3);
         } else {
             // 沒有收操，直接結束
             setCurrentPage('home');
@@ -2378,74 +2403,99 @@ function FitnessApp() {
     useEffect(() => {
         if (trainingPhase !== 'warmup' && trainingPhase !== 'cooldown') return;
         if (phasePaused) return;
-        if (phaseSecondsLeft <= 0) return;
+        if (phaseSubState === 'done') return; // 完成狀態，等待手動點擊
         
-        const interval = setInterval(function() {
-            setPhaseSecondsLeft(function(prev) {
-                if (prev === 3 || prev === 2 || prev === 1) {
-                    notify('tick');
-                }
-                if (prev <= 1) {
-                    notify('finish');
-                    // 自動進入下一個動作
-                    if (trainingPhase === 'warmup') {
-                        setWarmupIdx(function(prevIdx) {
-                            const map = warmupCooldownMap[selectedDay];
-                            if (!map) return prevIdx;
-                            if (prevIdx + 1 >= map.warmup.length) {
-                                // 熱身完成 → 進入主訓練
-                                setTimeout(enterMainPhase, 100);
-                                return prevIdx;
-                            }
-                            const nextWarmup = warmupDB[map.warmup[prevIdx + 1]];
-                            setPhaseSecondsLeft(nextWarmup ? nextWarmup.duration : 30);
-                            return prevIdx + 1;
-                        });
-                    } else if (trainingPhase === 'cooldown') {
-                        setCooldownIdx(function(prevIdx) {
-                            const map = warmupCooldownMap[selectedDay];
-                            if (!map) return prevIdx;
-                            if (prevIdx + 1 >= map.cooldown.length) {
-                                // 收操完成 → 結束
-                                setTimeout(function() { setCurrentPage('home'); }, 1000);
-                                return prevIdx;
-                            }
-                            const nextCooldown = cooldownDB[map.cooldown[prevIdx + 1]];
-                            setPhaseSecondsLeft(nextCooldown ? nextCooldown.duration : 30);
-                            return prevIdx + 1;
-                        });
+        // 處理 3 秒 countdown 預備階段
+        if (phaseSubState === 'countdown') {
+            if (countdownSec <= 0) {
+                // countdown 結束，進入執行階段
+                setPhaseSubState('exercising');
+                return;
+            }
+            const interval = setInterval(function() {
+                setCountdownSec(function(prev) {
+                    if (prev === 3 || prev === 2 || prev === 1) {
+                        notify('tick');
                     }
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
+                    if (prev <= 1) {
+                        // countdown 結束，切換到執行階段
+                        setTimeout(function() {
+                            setPhaseSubState('exercising');
+                        }, 100);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+            return function() { clearInterval(interval); };
+        }
         
-        return function() { clearInterval(interval); };
-    }, [trainingPhase, phasePaused, selectedDay]);
+        // 處理執行階段倒數
+        if (phaseSubState === 'exercising' && phaseSecondsLeft > 0) {
+            const interval = setInterval(function() {
+                setPhaseSecondsLeft(function(prev) {
+                    if (prev === 3 || prev === 2 || prev === 1) {
+                        notify('tick');
+                    }
+                    if (prev <= 1) {
+                        notify('finish');
+                        // 倒數結束 - 不自動進入下一個，改成等待手動
+                        setTimeout(function() {
+                            setPhaseSubState('done');
+                        }, 100);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+            return function() { clearInterval(interval); };
+        }
+    }, [trainingPhase, phasePaused, phaseSubState, countdownSec, phaseSecondsLeft]);
     
     // 跳到下一個熱身/收操動作
-    const skipPhaseExercise = () => {
+    // v14: 進入下一個動作 / 下一邊（手動）
+    const goToNext = () => {
         const map = warmupCooldownMap[selectedDay];
         if (!map) return;
-        if (trainingPhase === 'warmup') {
-            if (warmupIdx + 1 >= map.warmup.length) {
+        const isWarmup = trainingPhase === 'warmup';
+        const phaseList = isWarmup ? map.warmup : map.cooldown;
+        const phaseIdx = isWarmup ? warmupIdx : cooldownIdx;
+        const phaseDB = isWarmup ? warmupDB : cooldownDB;
+        const currentName = phaseList[phaseIdx];
+        const current = phaseDB[currentName];
+        
+        // 如果是雙邊動作且還在做左邊 → 切到右邊
+        if (current && current.isBilateral && bilateralSide === 'left') {
+            setBilateralSide('right');
+            setPhaseSubState('countdown');
+            setCountdownSec(3);
+            setPhaseSecondsLeft(current.duration);
+            return;
+        }
+        
+        // 進入下一個動作
+        if (phaseIdx + 1 >= phaseList.length) {
+            // 全部完成
+            if (isWarmup) {
                 enterMainPhase();
             } else {
-                setWarmupIdx(warmupIdx + 1);
-                const nextWarmup = warmupDB[map.warmup[warmupIdx + 1]];
-                setPhaseSecondsLeft(nextWarmup ? nextWarmup.duration : 30);
-            }
-        } else if (trainingPhase === 'cooldown') {
-            if (cooldownIdx + 1 >= map.cooldown.length) {
                 setCurrentPage('home');
-            } else {
-                setCooldownIdx(cooldownIdx + 1);
-                const nextCooldown = cooldownDB[map.cooldown[cooldownIdx + 1]];
-                setPhaseSecondsLeft(nextCooldown ? nextCooldown.duration : 30);
             }
+        } else {
+            const nextIdx = phaseIdx + 1;
+            const nextName = phaseList[nextIdx];
+            const next = phaseDB[nextName];
+            if (isWarmup) setWarmupIdx(nextIdx);
+            else setCooldownIdx(nextIdx);
+            setBilateralSide('left');
+            setPhaseSubState('countdown');
+            setCountdownSec(3);
+            setPhaseSecondsLeft(next ? next.duration : 30);
         }
     };
+    
+    // v14 別名：保留舊名稱讓其他程式碼還能用
+    const skipPhaseExercise = goToNext;
     
     // 跳過整個階段
     const skipEntirePhase = () => {
@@ -3984,30 +4034,86 @@ function FitnessApp() {
                 )
             ),
             React.createElement('div', { className: 'px-5 py-6 space-y-4' },
+                // 動作主卡片 - 根據子狀態顯示不同內容
                 React.createElement('div', { className: 'bg-slate-900/70 border border-slate-800 rounded-3xl p-6 text-center' },
                     React.createElement('p', { className: 'text-xs uppercase tracking-widest mb-2 ' + (isWarmup ? 'text-orange-400' : 'text-emerald-400') }, phaseIcon + ' ' + phaseName + '中'),
-                    React.createElement('h2', { className: 'text-2xl font-bold text-white mb-3' }, currentName),
-                    React.createElement('div', { className: 'my-6' },
-                        React.createElement('p', { className: 'text-7xl font-black font-mono ' + (isWarmup ? 'text-orange-300' : 'text-emerald-300') }, phaseSecondsLeft),
-                        React.createElement('p', { className: 'text-sm text-slate-400 mt-2' }, '秒')
+                    React.createElement('h2', { className: 'text-2xl font-bold text-white mb-1' }, currentName),
+                    // 雙邊動作顯示左/右
+                    current.isBilateral && React.createElement('p', { className: 'text-base font-bold mb-2 ' + (bilateralSide === 'left' ? 'text-cyan-400' : 'text-amber-400') },
+                        bilateralSide === 'left' ? '👈 左側' : '右側 👉'
                     ),
-                    React.createElement('div', { className: 'w-full bg-slate-800 rounded-full h-2 overflow-hidden mb-4' },
-                        React.createElement('div', {
-                            className: 'h-full rounded-full transition-all duration-1000 ' + (isWarmup ? 'bg-gradient-to-r from-orange-500 to-orange-400' : 'bg-gradient-to-r from-emerald-500 to-emerald-400'),
-                            style: { width: progressPct + '%' }
-                        })
-                    ),
-                    React.createElement('div', { className: 'flex gap-2 justify-center' },
+                    
+                    // 主顯示區 - 根據子狀態切換
+                    phaseSubState === 'countdown' ?
+                        // 3 秒預備倒數
+                        React.createElement('div', { className: 'my-6' },
+                            React.createElement('p', { className: 'text-xs text-slate-400 mb-2 uppercase tracking-widest' }, '🚦 預備'),
+                            React.createElement('p', { className: 'text-8xl font-black font-mono text-white' }, countdownSec),
+                            React.createElement('p', { className: 'text-sm text-slate-500 mt-2' }, '準備開始...')
+                        )
+                    : phaseSubState === 'done' ?
+                        // 完成狀態
+                        React.createElement('div', { className: 'my-6' },
+                            React.createElement('p', { className: 'text-6xl mb-3' }, '✅'),
+                            React.createElement('p', { className: 'text-2xl font-bold ' + (isWarmup ? 'text-orange-300' : 'text-emerald-300') }, '完成！'),
+                            React.createElement('p', { className: 'text-sm text-slate-400 mt-1' }, 
+                                current.isBilateral && bilateralSide === 'left' ? '準備換邊' : '準備下一個動作'
+                            )
+                        )
+                    :
+                        // 執行階段 - 倒數
+                        React.createElement('div', null,
+                            React.createElement('div', { className: 'my-6' },
+                                React.createElement('p', { className: 'text-7xl font-black font-mono ' + (isWarmup ? 'text-orange-300' : 'text-emerald-300') }, phaseSecondsLeft),
+                                React.createElement('p', { className: 'text-sm text-slate-400 mt-2' }, '秒')
+                            ),
+                            React.createElement('div', { className: 'w-full bg-slate-800 rounded-full h-2 overflow-hidden mb-4' },
+                                React.createElement('div', {
+                                    className: 'h-full rounded-full transition-all duration-1000 ' + (isWarmup ? 'bg-gradient-to-r from-orange-500 to-orange-400' : 'bg-gradient-to-r from-emerald-500 to-emerald-400'),
+                                    style: { width: progressPct + '%' }
+                                })
+                            )
+                        ),
+                    
+                    // 控制按鈕 - 不同階段不同樣
+                    phaseSubState === 'done' ?
+                        // 完成 - 大「進入下一個」按鈕
                         React.createElement('button', {
-                            onClick: function() { setPhasePaused(!phasePaused); },
-                            className: 'px-5 py-2.5 bg-slate-800 rounded-xl text-white font-semibold text-sm flex items-center gap-2'
-                        }, React.createElement(Icon, { name: phasePaused ? 'play' : 'pause', size: 16 }),
-                           phasePaused ? '繼續' : '暫停'),
+                            onClick: goToNext,
+                            className: 'w-full py-4 rounded-2xl text-white font-bold text-base ' + 
+                                (isWarmup ? 'bg-gradient-to-r from-orange-500 to-orange-400' : 'bg-gradient-to-r from-emerald-500 to-emerald-400')
+                        }, current.isBilateral && bilateralSide === 'left' ? '👉 進入右側' : '⏭ 下一個動作')
+                    : phaseSubState === 'countdown' ?
+                        // 預備 - 跳過按鈕
                         React.createElement('button', {
-                            onClick: skipPhaseExercise,
+                            onClick: function() { 
+                                setPhaseSubState('exercising'); 
+                            },
                             className: 'px-5 py-2.5 bg-slate-800 rounded-xl text-slate-300 font-semibold text-sm'
-                        }, '⏭ 下一個')
-                    )
+                        }, '⏭ 跳過預備')
+                    :
+                        // 執行中 - 暫停 + 加減時間 + 跳過
+                        React.createElement('div', null,
+                            React.createElement('div', { className: 'flex gap-2 justify-center mb-2' },
+                                React.createElement('button', {
+                                    onClick: function() { setPhaseSecondsLeft(Math.max(1, phaseSecondsLeft - 15)); },
+                                    className: 'px-4 py-2 bg-slate-800 rounded-xl text-slate-300 font-semibold text-sm'
+                                }, '−15s'),
+                                React.createElement('button', {
+                                    onClick: function() { setPhasePaused(!phasePaused); },
+                                    className: 'px-5 py-2.5 bg-slate-800 rounded-xl text-white font-semibold text-sm flex items-center gap-2'
+                                }, React.createElement(Icon, { name: phasePaused ? 'play' : 'pause', size: 16 }),
+                                   phasePaused ? '繼續' : '暫停'),
+                                React.createElement('button', {
+                                    onClick: function() { setPhaseSecondsLeft(phaseSecondsLeft + 15); },
+                                    className: 'px-4 py-2 bg-slate-800 rounded-xl text-slate-300 font-semibold text-sm'
+                                }, '+15s')
+                            ),
+                            React.createElement('button', {
+                                onClick: function() { setPhaseSubState('done'); },
+                                className: 'px-4 py-2 bg-slate-900 rounded-xl text-slate-500 text-xs'
+                            }, '⏭ 提前完成')
+                        )
                 ),
                 React.createElement('div', { className: (isWarmup ? 'bg-orange-950/30 border border-orange-700/30' : 'bg-emerald-950/30 border border-emerald-700/30') + ' rounded-2xl p-4' },
                     React.createElement('p', { className: 'text-xs font-bold mb-2 ' + (isWarmup ? 'text-orange-400' : 'text-emerald-400') }, '💡 為什麼要做這個？'),
@@ -4179,15 +4285,61 @@ function FitnessApp() {
                     // ============ 自動計時模式（秒數動作）============
                     !isExerciseDone && isTimedExercise(ex.defaultReps) && (
                         autoMode === 'idle' ? 
-                            // 待機狀態：顯示「開始」大按鈕
-                            React.createElement('div', { className: 'bg-slate-800/50 rounded-2xl p-6 text-center' },
-                                React.createElement('p', { className: 'text-sm text-slate-400 mb-4' }, '⚡ 自動計時模式'),
-                                React.createElement('p', { className: 'text-xs text-slate-500 mb-4' }, '按下開始後，動作和休息會自動切換'),
-                                React.createElement('button', {
-                                    onClick: startAutoMode,
-                                    className: 'px-8 py-4 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-2xl text-white font-bold text-lg shadow-xl shadow-emerald-500/30 flex items-center gap-2 mx-auto'
-                                }, React.createElement(Icon, { name: 'play', size: 24 }), '開始 ' + parseSeconds(ex.defaultReps) + ' 秒')
-                            )
+                            // v14: 待機狀態 - 可調整目標時間
+                            (function() {
+                                var defaultSec = parseSeconds(ex.defaultReps);
+                                var lastRec = null;
+                                if (selectedDay && progress) {
+                                    var dates = Object.keys(progress).sort().reverse();
+                                    for (var i = 0; i < dates.length; i++) {
+                                        var d = dates[i];
+                                        if (progress[d] && progress[d][selectedDay]) {
+                                            var sets = progress[d][selectedDay][currentExerciseIdx];
+                                            if (sets && sets.length > 0) {
+                                                var lastSet = sets[sets.length - 1];
+                                                var lastVal = (typeof lastSet === 'object' && lastSet.reps != null) ? lastSet.reps : lastSet;
+                                                if (typeof lastVal === 'number' && lastVal > 0) {
+                                                    lastRec = lastVal;
+                                                }
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                                var targetSec = autoTargetSec || lastRec || defaultSec;
+                                return React.createElement('div', { className: 'bg-slate-800/50 rounded-2xl p-5 space-y-3' },
+                                    React.createElement('p', { className: 'text-sm text-slate-400 text-center' }, '⚡ 自動計時模式'),
+                                    // 時間調整區
+                                    React.createElement('div', { className: 'bg-slate-900/70 rounded-xl p-3' },
+                                        React.createElement('p', { className: 'text-xs text-slate-400 text-center mb-2' }, 
+                                            '目標時間' + (lastRec ? '（上次：' + lastRec + 's）' : '')
+                                        ),
+                                        React.createElement('div', { className: 'flex items-center justify-center gap-2' },
+                                            React.createElement('button', {
+                                                onClick: function() { setAutoTargetSec(Math.max(5, targetSec - 15)); },
+                                                className: 'w-14 h-12 bg-slate-700 rounded-xl text-white font-bold'
+                                            }, '−15s'),
+                                            React.createElement('div', { className: 'flex-1 text-center' },
+                                                React.createElement('p', { className: 'text-3xl font-black text-emerald-400 font-mono' }, targetSec),
+                                                React.createElement('p', { className: 'text-xs text-slate-400' }, '秒')
+                                            ),
+                                            React.createElement('button', {
+                                                onClick: function() { setAutoTargetSec(targetSec + 15); },
+                                                className: 'w-14 h-12 bg-slate-700 rounded-xl text-white font-bold'
+                                            }, '+15s')
+                                        )
+                                    ),
+                                    React.createElement('button', {
+                                        onClick: function() {
+                                            // 設定目標時間後啟動
+                                            if (!autoTargetSec) setAutoTargetSec(targetSec);
+                                            setAutoSecondsLeft(targetSec);
+                                            setAutoMode('exercising');
+                                        },
+                                        className: 'w-full py-4 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-2xl text-white font-bold text-lg shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2'
+                                    }, React.createElement(Icon, { name: 'play', size: 24 }), '開始 ' + targetSec + ' 秒')
+                                );
+                            })()
                         : autoMode === 'exercising' ?
                             // 動作中：紅色背景 + 大數字
                             React.createElement('div', { className: 'bg-gradient-to-br from-rose-600/30 to-rose-700/30 border-2 border-rose-500 rounded-2xl p-6 text-center' },
@@ -4388,6 +4540,7 @@ function FitnessApp() {
 // ============================================
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(React.createElement(FitnessApp));
+
 
 </script>
 
