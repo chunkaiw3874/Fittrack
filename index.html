@@ -1140,6 +1140,7 @@ const exerciseDB = {
     },
     '側平板': {
         englishName: 'side plank',
+        isBilateral: true,
         primary: ['核心'],
         secondary: ['肩'],
         equipment: ['瑜伽墊'],
@@ -1918,9 +1919,13 @@ function FitnessApp() {
     const [timerSeconds, setTimerSeconds] = useState(0);
     const [isTimerRunning, setIsTimerRunning] = useState(false);
     // 自動計時模式新增的 state
-    const [autoMode, setAutoMode] = useState('idle'); // idle, exercising, resting, preparing, done
+    const [autoMode, setAutoMode] = useState('idle'); // idle, countdown, exercising, set_done, resting, done
     // v14: 計時動作的目標秒數（可調整）
     const [autoTargetSec, setAutoTargetSec] = useState(0);
+    // v15: 雙邊動作的當前邊
+    const [autoBilateralSide, setAutoBilateralSide] = useState('left');
+    // v15: 預備倒數的秒數
+    const [autoCountdownSec, setAutoCountdownSec] = useState(3);
     const [autoSecondsLeft, setAutoSecondsLeft] = useState(0);
     const [soundEnabled, setSoundEnabled] = useState(true);
     const [vibrationEnabled, setVibrationEnabled] = useState(false);
@@ -2000,106 +2005,157 @@ function FitnessApp() {
         return () => clearInterval(interval);
     }, [isTimerRunning]);
     
-    // 自動倒數計時器（用 functional updater 確保讀到最新狀態）
+    // v15: 自動倒數計時器（重寫）
     useEffect(() => {
-        if (autoMode === 'idle' || autoMode === 'done' || autoMode === 'paused') return;
-        if (autoSecondsLeft <= 0) return;
+        // idle / set_done / bilateral_done / done / paused 不跑
+        if (['idle', 'set_done', 'bilateral_done', 'done', 'paused'].indexOf(autoMode) >= 0) return;
         if (!selectedDay) return;
         
-        // 在 effect 內計算當下的 exercises（不依賴外部）
         const config = durationConfigs[duration];
         const baseExercises = customWorkouts[selectedDay] || (defaultTemplates[selectedDay] && defaultTemplates[selectedDay].exercises) || [];
         const currentExercises = baseExercises.slice(0, config.exerciseCount);
         const currentExName = currentExercises[currentExerciseIdx];
         const currentEx = exerciseDB[currentExName];
-        
         if (!currentEx) return;
         
-        const interval = setInterval(() => {
-            setAutoSecondsLeft(function(prevSec) {
-                var next = prevSec - 1;
-                
-                // 倒數最後 3 秒：滴滴聲
-                if (next === 3 || next === 2 || next === 1) {
-                    notify('tick');
-                }
-                
-                if (next > 0) {
-                    return next;
-                }
-                
-                // 倒數歸零，切換階段
-                setAutoMode(function(currentMode) {
-                    if (currentMode === 'exercising') {
-                        notify('finish');
+        // ========== countdown 階段：3 秒預備倒數 ==========
+        if (autoMode === 'countdown') {
+            if (autoCountdownSec <= 0) return;
+            const interval = setInterval(function() {
+                setAutoCountdownSec(function(prev) {
+                    if (prev === 3 || prev === 2 || prev === 1) notify('tick');
+                    if (prev <= 1) {
+                        // 預備結束 → 進入 exercising
+                        setTimeout(function() {
+                            var targetSec = autoTargetSec || parseSeconds(currentEx.defaultReps);
+                            setAutoSecondsLeft(targetSec);
+                            setAutoMode('exercising');
+                        }, 100);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+            return function() { clearInterval(interval); };
+        }
+        
+        // ========== exercising 階段：實際動作倒數 ==========
+        if (autoMode === 'exercising') {
+            if (autoSecondsLeft <= 0) return;
+            const interval = setInterval(function() {
+                setAutoSecondsLeft(function(prevSec) {
+                    var next = prevSec - 1;
+                    if (next === 3 || next === 2 || next === 1) notify('tick');
+                    if (next > 0) return next;
+                    
+                    // 倒數歸零
+                    notify('finish');
+                    
+                    // 雙邊動作且還在做左邊 → 進入 bilateral_done（等手動進入右邊）
+                    if (currentEx.isBilateral && autoBilateralSide === 'left') {
+                        setTimeout(function() {
+                            setAutoMode('bilateral_done');
+                        }, 100);
+                        return 0;
+                    }
+                    
+                    // 一般情況（或雙邊右邊完成）→ 紀錄這組 + 進入 set_done（等手動進下一組）
+                    setCompletedSets(function(prevCompletedSets) {
+                        var newSets = prevCompletedSets.slice();
+                        var doneSec = autoTargetSec || parseSeconds(currentEx.defaultReps);
+                        newSets[currentExerciseIdx] = (newSets[currentExerciseIdx] || []).concat([doneSec]);
                         
-                        setCompletedSets(function(prevCompletedSets) {
-                            var newSets = prevCompletedSets.slice();
-                            // v14 修復：用實際目標秒數（使用者調整後的）而非動作預設值
-                            var doneSec = autoTargetSec || parseSeconds(currentEx.defaultReps);
-                            newSets[currentExerciseIdx] = (newSets[currentExerciseIdx] || []).concat([doneSec]);
-                            
-                            setProgress(function(prevProgress) {
-                                var today = new Date().toISOString().split('T')[0];
-                                var newProgress = Object.assign({}, prevProgress);
-                                if (!newProgress[today]) newProgress[today] = {};
-                                newProgress[today] = Object.assign({}, newProgress[today]);
-                                newProgress[today][selectedDay] = newSets;
-                                safeStorage.set('fittrack_progress', newProgress);
-                                return newProgress;
-                            });
-                            
-                            // 檢查是否完成所有組數
-                            var totalSets = config.setsPerExercise;
-                            if (newSets[currentExerciseIdx].length >= totalSets) {
-                                setTimeout(function() { 
-                                    setAutoMode('done'); 
-                                    setAutoSecondsLeft(0);
-                                }, 0);
-                            } else {
-                                // 進入休息
-                                var restTime = Math.round(currentEx.defaultRest * config.restMultiplier);
-                                setTimeout(function() { setAutoSecondsLeft(restTime); }, 0);
-                            }
-                            
-                            return newSets;
+                        setProgress(function(prevProgress) {
+                            var today = new Date().toISOString().split('T')[0];
+                            var newProgress = Object.assign({}, prevProgress);
+                            if (!newProgress[today]) newProgress[today] = {};
+                            newProgress[today] = Object.assign({}, newProgress[today]);
+                            newProgress[today][selectedDay] = newSets;
+                            safeStorage.set('fittrack_progress', newProgress);
+                            return newProgress;
                         });
                         
-                        return 'resting';
-                    } else if (currentMode === 'resting') {
-                        notify('rest_done');
-                        setTimeout(function() { setAutoSecondsLeft(3); }, 0);
-                        return 'preparing';
-                    } else if (currentMode === 'preparing') {
-                        // v14 修復：用使用者調整後的目標秒數
-                        var exerciseTime = autoTargetSec || parseSeconds(currentEx.defaultReps);
-                        setTimeout(function() { setAutoSecondsLeft(exerciseTime); }, 0);
-                        return 'exercising';
-                    }
-                    return currentMode;
+                        return newSets;
+                    });
+                    
+                    setTimeout(function() {
+                        setAutoMode('set_done');
+                    }, 100);
+                    return 0;
                 });
-                
-                return prevSec;
-            });
-        }, 1000);
+            }, 1000);
+            return function() { clearInterval(interval); };
+        }
         
-        return () => clearInterval(interval);
-    }, [autoMode, currentExerciseIdx, selectedDay, duration, customWorkouts]);
+        // ========== resting 階段：休息倒數 → 進入下一組的預備 ==========
+        if (autoMode === 'resting') {
+            if (autoSecondsLeft <= 0) return;
+            const interval = setInterval(function() {
+                setAutoSecondsLeft(function(prevSec) {
+                    var next = prevSec - 1;
+                    if (next === 3 || next === 2 || next === 1) notify('tick');
+                    if (next > 0) return next;
+                    
+                    // 休息結束 → 進入下一組的 countdown 預備
+                    notify('rest_done');
+                    setTimeout(function() {
+                        setAutoBilateralSide('left'); // 重置邊
+                        setAutoCountdownSec(3);
+                        setAutoMode('countdown');
+                    }, 100);
+                    return 0;
+                });
+            }, 1000);
+            return function() { clearInterval(interval); };
+        }
+    }, [autoMode, autoCountdownSec, autoSecondsLeft, currentExerciseIdx, selectedDay, duration, customWorkouts]);
     
     // 啟動自動模式
     const startAutoMode = () => {
-        // inline 計算當下的 exercises（不依賴外部 scope）
+        // v15: 改成從 countdown 開始（3 秒預備）
+        if (!selectedDay) return;
+        setAutoBilateralSide('left');
+        setAutoCountdownSec(3);
+        setAutoMode('countdown');
+    };
+    
+    // v15: 進入下一組（手動）
+    const goToNextSet = () => {
         if (!selectedDay) return;
         const config = durationConfigs[duration];
         const baseExercises = customWorkouts[selectedDay] || (defaultTemplates[selectedDay] && defaultTemplates[selectedDay].exercises) || [];
         const currentExercises = baseExercises.slice(0, config.exerciseCount);
         const currentExName = currentExercises[currentExerciseIdx];
-        const ex = exerciseDB[currentExName];
-        if (!ex) return;
-        // v14: 優先用上次的紀錄秒數（如果有的話）
-        var seconds = autoTargetSec || parseSeconds(ex.defaultReps);
-        setAutoSecondsLeft(seconds);
-        setAutoMode('exercising');
+        const currentEx = exerciseDB[currentExName];
+        if (!currentEx) return;
+        
+        // 檢查是否完成所有組數
+        var totalSets = config.setsPerExercise;
+        if (completedSets[currentExerciseIdx] && completedSets[currentExerciseIdx].length >= totalSets) {
+            // 全部完成
+            setAutoMode('done');
+            return;
+        }
+        
+        // 進入休息
+        var restTime = Math.round(currentEx.defaultRest * config.restMultiplier);
+        setAutoSecondsLeft(restTime);
+        setAutoMode('resting');
+    };
+    
+    // v15: 雙邊動作 - 進入右邊（手動）
+    const goToRightSide = () => {
+        if (!selectedDay) return;
+        const config = durationConfigs[duration];
+        const baseExercises = customWorkouts[selectedDay] || (defaultTemplates[selectedDay] && defaultTemplates[selectedDay].exercises) || [];
+        const currentExercises = baseExercises.slice(0, config.exerciseCount);
+        const currentExName = currentExercises[currentExerciseIdx];
+        const currentEx = exerciseDB[currentExName];
+        if (!currentEx) return;
+        
+        setAutoBilateralSide('right');
+        setAutoCountdownSec(3);
+        setAutoMode('countdown');
     };
     
     // 暫停 / 繼續自動模式
@@ -2346,8 +2402,23 @@ function FitnessApp() {
     const getSwapOptions = (currentExercise) => {
         const current = exerciseDB[currentExercise];
         if (!current) return [];
+        // 找出當前動作的主要肌群
+        const currentMuscles = current.primary || [];
         return Object.entries(exerciseDB)
-            .filter(([name, ex]) => name !== currentExercise && ex.category === current.category && (filterRegion === 'all' || ex.region === filterRegion))
+            .filter(([name, ex]) => {
+                if (name === currentExercise) return false;
+                // 預設：只顯示同主要肌群的動作（用 primary 比對）
+                const exMuscles = ex.primary || [];
+                const sameMuscle = exMuscles.some(m => currentMuscles.indexOf(m) >= 0);
+                if (!sameMuscle) return false;
+                // 額外篩選：如果使用者選了特定肌群
+                if (filterRegion !== 'all') {
+                    if (exMuscles.indexOf(filterRegion) < 0) return false;
+                }
+                return true;
+            })
+            // 按感受度排序（最有感的在前）
+            .sort(([, a], [, b]) => (b.mindMuscleScore || 0) - (a.mindMuscleScore || 0))
             .map(([name, ex]) => ({ name, ...ex }));
     };
 
@@ -2829,13 +2900,27 @@ function FitnessApp() {
                     '目前：', React.createElement('span', { className: 'text-white font-semibold' }, showSwapModal.exercise)
                 ),
                 React.createElement('div', { className: 'flex gap-2 overflow-x-auto pb-1' },
-                    [{ id: 'all', label: '全部' }, { id: 'upper', label: '上半身' }, { id: 'lower', label: '下半身' }, { id: 'core', label: '核心' }, { id: 'full', label: '全身' }].map(f =>
-                        React.createElement('button', {
-                            key: f.id,
-                            onClick: () => setFilterRegion(f.id),
-                            className: 'px-3 py-1.5 rounded-full text-xs whitespace-nowrap font-semibold ' + (filterRegion === f.id ? 'bg-cyan-500 text-white' : 'bg-slate-800 text-slate-400 border border-slate-700')
-                        }, f.label)
-                    )
+                    (function() {
+                        // 動態列出當前動作對應的肌群（primary + secondary）作為篩選選項
+                        const cur = exerciseDB[showSwapModal.exercise];
+                        const filters = [{ id: 'all', label: '全部' }];
+                        if (cur) {
+                            const allMuscles = [].concat(cur.primary || []).concat(cur.secondary || []);
+                            // 去重
+                            const seen = {};
+                            allMuscles.forEach(function(m) { seen[m] = true; });
+                            Object.keys(seen).forEach(function(m) {
+                                filters.push({ id: m, label: m });
+                            });
+                        }
+                        return filters.map(function(f) {
+                            return React.createElement('button', {
+                                key: f.id,
+                                onClick: function() { setFilterRegion(f.id); },
+                                className: 'px-3 py-1.5 rounded-full text-xs whitespace-nowrap font-semibold ' + (filterRegion === f.id ? 'bg-cyan-500 text-white' : 'bg-slate-800 text-slate-400 border border-slate-700')
+                            }, f.label);
+                        });
+                    })()
                 )
             ),
             React.createElement('div', { className: 'p-4 space-y-2' },
@@ -3968,7 +4053,7 @@ function FitnessApp() {
                                     className: 'flex-1 py-2 bg-slate-800 rounded-xl text-xs font-semibold text-slate-300 flex items-center justify-center gap-1'
                                 }, React.createElement(Icon, { name: 'info', size: 14 }), ' 詳情'),
                                 React.createElement('button', {
-                                    onClick: () => setShowSwapModal({ exercise: exName, idx, day: selectedDay }),
+                                    onClick: () => { setFilterRegion('all'); setShowSwapModal({ exercise: exName, idx, day: selectedDay }); },
                                     className: 'flex-1 py-2 bg-slate-800 rounded-xl text-xs font-semibold text-cyan-400 flex items-center justify-center gap-1'
                                 }, React.createElement(Icon, { name: 'refresh', size: 14 }), ' 替換')
                             )
@@ -4101,18 +4186,18 @@ function FitnessApp() {
                         React.createElement('div', null,
                             React.createElement('div', { className: 'flex gap-2 justify-center mb-2' },
                                 React.createElement('button', {
-                                    onClick: function() { setPhaseSecondsLeft(Math.max(1, phaseSecondsLeft - 15)); },
+                                    onClick: function() { setPhaseSecondsLeft(Math.max(1, phaseSecondsLeft - 10)); },
                                     className: 'px-4 py-2 bg-slate-800 rounded-xl text-slate-300 font-semibold text-sm'
-                                }, '−15s'),
+                                }, '−10s'),
                                 React.createElement('button', {
                                     onClick: function() { setPhasePaused(!phasePaused); },
                                     className: 'px-5 py-2.5 bg-slate-800 rounded-xl text-white font-semibold text-sm flex items-center gap-2'
                                 }, React.createElement(Icon, { name: phasePaused ? 'play' : 'pause', size: 16 }),
                                    phasePaused ? '繼續' : '暫停'),
                                 React.createElement('button', {
-                                    onClick: function() { setPhaseSecondsLeft(phaseSecondsLeft + 15); },
+                                    onClick: function() { setPhaseSecondsLeft(phaseSecondsLeft + 10); },
                                     className: 'px-4 py-2 bg-slate-800 rounded-xl text-slate-300 font-semibold text-sm'
-                                }, '+15s')
+                                }, '+10s')
                             ),
                             React.createElement('button', {
                                 onClick: function() { setPhaseSubState('done'); },
@@ -4326,17 +4411,17 @@ function FitnessApp() {
                                         ),
                                         React.createElement('div', { className: 'flex items-center justify-center gap-2' },
                                             React.createElement('button', {
-                                                onClick: function() { setAutoTargetSec(Math.max(5, targetSec - 15)); },
+                                                onClick: function() { setAutoTargetSec(Math.max(5, targetSec - 10)); },
                                                 className: 'w-14 h-12 bg-slate-700 rounded-xl text-white font-bold'
-                                            }, '−15s'),
+                                            }, '−10s'),
                                             React.createElement('div', { className: 'flex-1 text-center' },
                                                 React.createElement('p', { className: 'text-3xl font-black text-emerald-400 font-mono' }, targetSec),
                                                 React.createElement('p', { className: 'text-xs text-slate-400' }, '秒')
                                             ),
                                             React.createElement('button', {
-                                                onClick: function() { setAutoTargetSec(targetSec + 15); },
+                                                onClick: function() { setAutoTargetSec(targetSec + 10); },
                                                 className: 'w-14 h-12 bg-slate-700 rounded-xl text-white font-bold'
-                                            }, '+15s')
+                                            }, '+10s')
                                         )
                                     ),
                                     React.createElement('button', {
@@ -4350,22 +4435,70 @@ function FitnessApp() {
                                     }, React.createElement(Icon, { name: 'play', size: 24 }), '開始 ' + targetSec + ' 秒')
                                 );
                             })()
+                        : autoMode === 'countdown' ?
+                            // v15: 3 秒預備倒數（黃色）
+                            React.createElement('div', { className: 'bg-gradient-to-br from-amber-500/30 to-orange-500/30 border-2 border-amber-500 rounded-2xl p-6 text-center' },
+                                React.createElement('p', { className: 'text-sm text-amber-300 mb-2 font-bold uppercase tracking-wider' }, '🚦 預備'),
+                                ex.isBilateral && React.createElement('p', { className: 'text-base font-bold mb-2 ' + (autoBilateralSide === 'left' ? 'text-cyan-300' : 'text-rose-300') },
+                                    autoBilateralSide === 'left' ? '👈 左側' : '右側 👉'
+                                ),
+                                React.createElement('p', { className: 'text-8xl font-black font-mono text-white' }, autoCountdownSec),
+                                React.createElement('p', { className: 'text-xs text-amber-300 mt-2' }, '準備開始...')
+                            )
                         : autoMode === 'exercising' ?
                             // 動作中：紅色背景 + 大數字
                             React.createElement('div', { className: 'bg-gradient-to-br from-rose-600/30 to-rose-700/30 border-2 border-rose-500 rounded-2xl p-6 text-center' },
                                 React.createElement('p', { className: 'text-sm text-rose-300 mb-2 font-bold uppercase tracking-wider' }, '💪 動作中'),
+                                ex.isBilateral && React.createElement('p', { className: 'text-base font-bold mb-2 ' + (autoBilateralSide === 'left' ? 'text-cyan-300' : 'text-amber-300') },
+                                    autoBilateralSide === 'left' ? '👈 左側' : '右側 👉'
+                                ),
                                 React.createElement('p', { className: 'text-7xl font-black font-mono text-white mb-3' }, autoSecondsLeft),
                                 React.createElement('p', { className: 'text-xs text-rose-300 mb-4' }, '第 ' + (setsForExercise.length + 1) + ' 組 / 共 ' + ex.sets + ' 組'),
-                                React.createElement('div', { className: 'flex gap-2 justify-center' },
+                                React.createElement('div', { className: 'flex gap-2 justify-center mb-2' },
                                     React.createElement('button', {
-                                        onClick: skipCurrentPhase,
-                                        className: 'px-4 py-2 bg-slate-700 rounded-xl text-slate-300 font-semibold text-sm'
-                                    }, '跳過'),
+                                        onClick: function() { setAutoSecondsLeft(Math.max(1, autoSecondsLeft - 10)); },
+                                        className: 'px-3 py-2 bg-slate-700 rounded-xl text-slate-300 font-semibold text-xs'
+                                    }, '−10s'),
+                                    React.createElement('button', {
+                                        onClick: function() { setAutoSecondsLeft(autoSecondsLeft + 10); },
+                                        className: 'px-3 py-2 bg-slate-700 rounded-xl text-slate-300 font-semibold text-xs'
+                                    }, '+10s'),
+                                    React.createElement('button', {
+                                        onClick: function() {
+                                            // 提前完成 - 直接設成 0 觸發完成邏輯
+                                            setAutoSecondsLeft(1);
+                                        },
+                                        className: 'px-3 py-2 bg-slate-700 rounded-xl text-slate-300 font-semibold text-xs'
+                                    }, '⏭ 提前完成'),
                                     React.createElement('button', {
                                         onClick: stopAutoMode,
-                                        className: 'px-4 py-2 bg-slate-700 rounded-xl text-slate-300 font-semibold text-sm'
+                                        className: 'px-3 py-2 bg-slate-700 rounded-xl text-slate-300 font-semibold text-xs'
                                     }, '停止')
                                 )
+                            )
+                        : autoMode === 'bilateral_done' ?
+                            // v15: 雙邊動作 - 左邊完成，等手動進入右邊
+                            React.createElement('div', { className: 'bg-gradient-to-br from-cyan-600/30 to-blue-600/30 border-2 border-cyan-500 rounded-2xl p-6 text-center' },
+                                React.createElement('p', { className: 'text-6xl mb-2' }, '✅'),
+                                React.createElement('p', { className: 'text-xl font-bold text-cyan-300 mb-1' }, '左側完成！'),
+                                React.createElement('p', { className: 'text-xs text-slate-400 mb-4' }, '準備換邊'),
+                                React.createElement('button', {
+                                    onClick: goToRightSide,
+                                    className: 'w-full py-4 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl text-white font-bold text-base'
+                                }, '👉 進入右側')
+                            )
+                        : autoMode === 'set_done' ?
+                            // v15: 一組完成 - 等手動進入下一組
+                            React.createElement('div', { className: 'bg-gradient-to-br from-emerald-600/30 to-green-600/30 border-2 border-emerald-500 rounded-2xl p-6 text-center' },
+                                React.createElement('p', { className: 'text-6xl mb-2' }, '✅'),
+                                React.createElement('p', { className: 'text-xl font-bold text-emerald-300 mb-1' }, '第 ' + (setsForExercise.length) + ' 組完成！'),
+                                React.createElement('p', { className: 'text-xs text-slate-400 mb-4' }, 
+                                    setsForExercise.length >= ex.sets ? '所有組數完成' : '準備下一組'
+                                ),
+                                React.createElement('button', {
+                                    onClick: goToNextSet,
+                                    className: 'w-full py-4 bg-gradient-to-r from-emerald-500 to-green-500 rounded-2xl text-white font-bold text-base'
+                                }, setsForExercise.length >= ex.sets ? '✓ 動作完成' : '⏭ 進入下一組')
                             )
                         : autoMode === 'resting' ?
                             // 休息中：藍色背景
@@ -4375,7 +4508,12 @@ function FitnessApp() {
                                 React.createElement('p', { className: 'text-xs text-blue-300 mb-4' }, '下一組：第 ' + (setsForExercise.length + 1) + ' 組'),
                                 React.createElement('div', { className: 'flex gap-2 justify-center' },
                                     React.createElement('button', {
-                                        onClick: skipCurrentPhase,
+                                        onClick: function() { 
+                                            // 跳過休息 - 直接進入 countdown
+                                            setAutoBilateralSide('left');
+                                            setAutoCountdownSec(3);
+                                            setAutoMode('countdown');
+                                        },
                                         className: 'px-4 py-2 bg-slate-700 rounded-xl text-slate-300 font-semibold text-sm'
                                     }, '跳過休息'),
                                     React.createElement('button', {
@@ -4383,13 +4521,6 @@ function FitnessApp() {
                                         className: 'px-4 py-2 bg-slate-700 rounded-xl text-slate-300 font-semibold text-sm'
                                     }, '停止')
                                 )
-                            )
-                        : autoMode === 'preparing' ?
-                            // 準備中：黃色背景 + 大倒數
-                            React.createElement('div', { className: 'bg-gradient-to-br from-amber-500/30 to-orange-500/30 border-2 border-amber-500 rounded-2xl p-6 text-center' },
-                                React.createElement('p', { className: 'text-sm text-amber-300 mb-2 font-bold uppercase tracking-wider' }, '⏰ 準備開始')
-,
-                                React.createElement('p', { className: 'text-8xl font-black font-mono text-white' }, autoSecondsLeft)
                             )
                         : null
                     ),
