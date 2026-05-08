@@ -124,6 +124,7 @@ window.addEventListener('error', function(e) {
 
 <script>
 
+
 // ============================================
 // FitTrack - Kevin 的健身計畫 PWA
 // ============================================
@@ -2034,7 +2035,8 @@ function FitnessApp() {
                         
                         setCompletedSets(function(prevCompletedSets) {
                             var newSets = prevCompletedSets.slice();
-                            var doneSec = parseSeconds(currentEx.defaultReps);
+                            // v14 修復：用實際目標秒數（使用者調整後的）而非動作預設值
+                            var doneSec = autoTargetSec || parseSeconds(currentEx.defaultReps);
                             newSets[currentExerciseIdx] = (newSets[currentExerciseIdx] || []).concat([doneSec]);
                             
                             setProgress(function(prevProgress) {
@@ -2069,7 +2071,8 @@ function FitnessApp() {
                         setTimeout(function() { setAutoSecondsLeft(3); }, 0);
                         return 'preparing';
                     } else if (currentMode === 'preparing') {
-                        var exerciseTime = parseSeconds(currentEx.defaultReps);
+                        // v14 修復：用使用者調整後的目標秒數
+                        var exerciseTime = autoTargetSec || parseSeconds(currentEx.defaultReps);
                         setTimeout(function() { setAutoSecondsLeft(exerciseTime); }, 0);
                         return 'exercising';
                     }
@@ -2638,13 +2641,15 @@ function FitnessApp() {
             React.createElement('h3', { className: 'text-lg font-bold text-cyan-300 mb-2' }, '第 ' + (showInputModal.setNum) + ' 組完成？'),
             React.createElement('p', { className: 'text-sm text-slate-400 mb-4' }, '目標：' + (showInputModal.target)),
             
-            // 次數輸入（uncontrolled - 不用 value+onChange）
-            React.createElement('label', { className: 'text-xs text-slate-400 mb-1 block' }, '完成幾下'),
+            // 次數/秒數輸入（uncontrolled - 不用 value+onChange）
+            React.createElement('label', { className: 'text-xs text-slate-400 mb-1 block' }, 
+                showInputModal.isTimed ? '完成幾秒' : '完成幾下'
+            ),
             React.createElement('input', {
                 ref: repsInputRef,
                 type: 'number',
                 inputMode: 'numeric',
-                placeholder: '次數',
+                placeholder: showInputModal.isTimed ? '秒數' : '次數',
                 onKeyDown: function(e) {
                     if (e.key === 'Enter') {
                         if (weightInputRef.current) weightInputRef.current.focus();
@@ -4259,11 +4264,16 @@ function FitnessApp() {
                             return React.createElement('button', {
                                 key: idx,
                                 onClick: () => { 
-                                    if (isNext && !isTimedEx) {
-                                        setShowInputModal({ setNum: idx + 1, target: ex.defaultReps });
+                                    if (isNext) {
+                                        // v14 修復：計時動作也能手動點按鈕記錄
+                                        setShowInputModal({ 
+                                            setNum: idx + 1, 
+                                            target: ex.defaultReps,
+                                            isTimed: isTimedEx
+                                        });
                                     }
                                 },
-                                disabled: !isNext || isTimedEx,
+                                disabled: !isNext,
                                 className: 'aspect-square rounded-2xl border-2 flex flex-col items-center justify-center ' + (isDone ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : isNext ? 'bg-cyan-500/10 border-cyan-500 text-cyan-300 animate-pulse' : 'bg-slate-800/30 border-slate-700 text-slate-600')
                             },
                                 isDone ? React.createElement(React.Fragment, null,
@@ -4331,8 +4341,8 @@ function FitnessApp() {
                                     ),
                                     React.createElement('button', {
                                         onClick: function() {
-                                            // 設定目標時間後啟動
-                                            if (!autoTargetSec) setAutoTargetSec(targetSec);
+                                            // 設定目標時間後啟動 - 確保 state 是當前目標
+                                            setAutoTargetSec(targetSec);
                                             setAutoSecondsLeft(targetSec);
                                             setAutoMode('exercising');
                                         },
@@ -4429,6 +4439,7 @@ function FitnessApp() {
                                 setIsTimerRunning(false);
                                 setAutoMode('idle');
                                 setAutoSecondsLeft(0);
+                                setAutoTargetSec(0); // v14: 重置以讓新動作讀取它的上次紀錄
                             }
                         },
                         disabled: currentExerciseIdx === 0,
@@ -4445,6 +4456,7 @@ function FitnessApp() {
                                 setIsTimerRunning(false);
                                 setAutoMode('idle');
                                 setAutoSecondsLeft(0);
+                                setAutoTargetSec(0); // v14: 重置以讓新動作讀取它的上次紀錄
                             }
                         },
                         className: 'flex-1 py-4 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl font-bold text-white shadow-2xl shadow-cyan-500/30 flex items-center justify-center gap-2'
@@ -4540,6 +4552,7 @@ function FitnessApp() {
 // ============================================
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(React.createElement(FitnessApp));
+
 
 
 </script>
