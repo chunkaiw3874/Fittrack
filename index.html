@@ -1858,7 +1858,331 @@ const warmupCooldownMap = {
         warmup: ['開合跳熱身', '高抬腿熱身', '動態貓牛', '軀幹旋轉', '鳥狗式熱身'],
         cooldown: ['童式', '貓牛伸展（收操）', '腿後肌伸展', '臀部 4 字伸展', '4-7-8 呼吸']
     },
+    // v16: 史密斯機訓練日的熱身/收操
+    'smith_chest': {
+        name: '史密斯-胸肩三頭',
+        warmup: ['開合跳熱身', '動態貓牛', '手臂繞圈', '阻力帶 Pull Apart 熱身', '啞鈴空推熱身'],
+        cooldown: ['胸大肌伸展', '肩三角肌伸展', '三頭肌伸展', '4-7-8 呼吸']
+    },
+    'smith_back': {
+        name: '史密斯-背二頭',
+        warmup: ['開合跳熱身', '動態貓牛', '手臂繞圈', '阻力帶 Y 字熱身', '阻力帶 Pull Apart 熱身'],
+        cooldown: ['背部伸展', '貓牛伸展（收操）', '肩三角肌伸展', '童式', '4-7-8 呼吸']
+    },
+    'smith_legs': {
+        name: '史密斯-腿臀',
+        warmup: ['開合跳熱身', '高抬腿熱身', '髖關節繞圈', '動態弓箭步', '徒手深蹲熱身'],
+        cooldown: ['四頭肌伸展', '腿後肌伸展', '髖屈肌伸展', '臀部 4 字伸展', '4-7-8 呼吸']
+    },
+    'smith_core': {
+        name: '史密斯-核心',
+        warmup: ['開合跳熱身', '動態貓牛', '軀幹旋轉', '鳥狗式熱身', '世界最棒伸展'],
+        cooldown: ['童式', '貓牛伸展（收操）', '臀部 4 字伸展', '腿後肌伸展', '4-7-8 呼吸']
+    }
 };
+
+// ============================================
+// 史密斯機動作資料庫 (v15 新)
+// ============================================
+const smithDB = {
+    '史密斯臥推': {
+        englishName: 'smith machine bench press',
+        primary: ['胸'],
+        secondary: ['手臂', '肩'],
+        equipment: ['史密斯機'],
+        difficulty: 2,
+        defaultReps: '8-12下',
+        defaultRest: 90,
+        sets: 4,
+        howTo: ['平躺於史密斯機下方，調整位置讓槓位於胸口正上方', '雙手寬於肩膀握槓，旋轉解鎖', '吸氣下放槓至胸口（觸胸或近胸）', '呼氣推起，全程穩定核心，不要鎖死手肘'],
+        notes: ['手肘不要外翻 90 度，保持 45 度', '腳掌穩踩地面', '臀部貼住椅面'],
+        mindMuscleScore: 9.0
+    },
+    '史密斯上斜臥推': {
+        englishName: 'smith machine incline bench press',
+        primary: ['胸'],
+        secondary: ['肩', '手臂'],
+        equipment: ['史密斯機'],
+        difficulty: 2,
+        defaultReps: '8-12下',
+        defaultRest: 90,
+        sets: 4,
+        howTo: ['將椅面調整為 30-45 度傾斜', '槓位於上胸（鎖骨下方）正上方', '吸氣慢速下放至上胸', '呼氣推起，感受上胸發力'],
+        notes: ['角度不要超過 45 度，否則變肩推', '專注上胸收縮'],
+        mindMuscleScore: 9.0
+    },
+    '史密斯下斜臥推': {
+        englishName: 'smith machine decline bench press',
+        primary: ['胸'],
+        secondary: ['手臂'],
+        equipment: ['史密斯機'],
+        difficulty: 3,
+        defaultReps: '8-12下',
+        defaultRest: 90,
+        sets: 3,
+        howTo: ['椅面調整為下斜 15-30 度', '雙腳鉤住椅面下端固定', '槓位於下胸正上方', '下放至下胸，推起時感受下胸發力'],
+        notes: ['對心臟負擔較大，有心血管問題請避免', '頭不要離開椅面'],
+        mindMuscleScore: 8.5
+    },
+    '史密斯窄握臥推': {
+        englishName: 'smith machine close grip bench press',
+        primary: ['手臂'],
+        secondary: ['胸'],
+        equipment: ['史密斯機'],
+        difficulty: 2,
+        defaultReps: '8-12下',
+        defaultRest: 75,
+        sets: 3,
+        howTo: ['雙手與肩同寬或略窄握槓', '手肘貼近身體下放', '槓下放至胸下緣', '推起時感受三頭與胸內側發力'],
+        notes: ['手不要握太窄，否則手腕壓力大', '主要練三頭，胸是次要'],
+        mindMuscleScore: 8.5
+    },
+    '史密斯划船': {
+        englishName: 'smith machine bent over row',
+        primary: ['背'],
+        secondary: ['手臂'],
+        equipment: ['史密斯機'],
+        difficulty: 2,
+        defaultReps: '8-12下',
+        defaultRest: 90,
+        sets: 4,
+        howTo: ['站立握槓，槓在大腿前', '臀部後推，上身前傾約 45 度', '保持背部平直，不要拱背', '槓拉至下腹或腰部，感受背肌夾緊'],
+        notes: ['核心收緊保護下背', '速度慢，感受背肌', '不要靠手臂代償'],
+        mindMuscleScore: 9.0
+    },
+    '史密斯硬舉': {
+        englishName: 'smith machine deadlift',
+        primary: ['背', '腿', '臀'],
+        secondary: ['核心'],
+        equipment: ['史密斯機'],
+        difficulty: 3,
+        defaultReps: '6-10下',
+        defaultRest: 120,
+        sets: 4,
+        howTo: ['槓置於膝蓋下方位置（解鎖點稍高）', '雙腳與肩同寬站立，槓貼小腿', '彎腰握槓，背部挺直', '臀腿同時發力站起，槓沿身體向上', '回放時臀部後推，控制下放'],
+        notes: ['全程背挺直，禁止拱背', '不適合下背受傷者', '建議由輕重量開始學動作'],
+        mindMuscleScore: 9.0
+    },
+    '史密斯反握划船': {
+        englishName: 'smith machine reverse grip row',
+        primary: ['背'],
+        secondary: ['手臂'],
+        equipment: ['史密斯機'],
+        difficulty: 2,
+        defaultReps: '8-12下',
+        defaultRest: 90,
+        sets: 3,
+        howTo: ['反握（手心朝上）寬度與肩同寬', '上身前傾 45 度', '槓拉至下腹，手肘貼近身體', '感受下闊背肌和二頭參與'],
+        notes: ['反握更刺激下闊背', '手腕保持中立位'],
+        mindMuscleScore: 8.5
+    },
+    '史密斯肩推': {
+        englishName: 'smith machine overhead press',
+        primary: ['肩'],
+        secondary: ['手臂'],
+        equipment: ['史密斯機'],
+        difficulty: 3,
+        defaultReps: '8-12下',
+        defaultRest: 90,
+        sets: 4,
+        howTo: ['站姿（或坐姿椅子置於下方）', '槓位於鎖骨高度，雙手略寬於肩握槓', '吸氣推起至手臂伸直（不鎖死）', '呼氣下放至下巴前方'],
+        notes: ['核心收緊避免下背過度後仰', '不要用慣性'],
+        mindMuscleScore: 9.0
+    },
+    '史密斯坐姿肩推': {
+        englishName: 'smith machine seated shoulder press',
+        primary: ['肩'],
+        secondary: ['手臂'],
+        equipment: ['史密斯機'],
+        difficulty: 2,
+        defaultReps: '8-12下',
+        defaultRest: 90,
+        sets: 3,
+        howTo: ['直立椅子置於史密斯機下方', '坐下，雙腳穩踩地面', '雙手略寬於肩握槓', '推起時感受肩頭發力'],
+        notes: ['坐姿可隔離肩膀，不靠下肢借力', '椅背支撐腰部'],
+        mindMuscleScore: 8.5
+    },
+    '史密斯後拉': {
+        englishName: 'smith machine bent over reverse row',
+        primary: ['肩'],
+        secondary: ['背'],
+        equipment: ['史密斯機'],
+        difficulty: 2,
+        defaultReps: '12-15下',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['上身前傾 90 度（幾乎平行地面）', '雙手寬距握槓（比肩寬）', '手肘向兩側拉開，槓拉至胸口下方', '感受後三角和上背夾緊'],
+        notes: ['重點不是重量，是後三角的感受度', '輕重量做高次數效果好'],
+        mindMuscleScore: 8.0
+    },
+    '史密斯深蹲': {
+        englishName: 'smith machine squat',
+        primary: ['腿', '臀'],
+        secondary: ['核心'],
+        equipment: ['史密斯機'],
+        difficulty: 2,
+        defaultReps: '8-12下',
+        defaultRest: 120,
+        sets: 4,
+        howTo: ['槓置於上背（斜方肌）位置，不是脖子', '雙腳與肩同寬，可略向前 15 公分', '吸氣下蹲，臀部後推，膝蓋對齊腳尖', '蹲到大腿平行地面或更低', '呼氣推起，腿部全力推蹬'],
+        notes: ['槓墊好，避免脖子壓痛', '核心全程收緊'],
+        mindMuscleScore: 9.5
+    },
+    '史密斯前蹲': {
+        englishName: 'smith machine front squat',
+        primary: ['腿'],
+        secondary: ['核心', '臀'],
+        equipment: ['史密斯機'],
+        difficulty: 3,
+        defaultReps: '8-10下',
+        defaultRest: 120,
+        sets: 3,
+        howTo: ['槓置於前肩（鎖骨上方）', '雙手交叉握槓或正握', '雙腳與肩同寬，腳尖略外八', '上身保持挺直下蹲', '前蹲對股四頭刺激更直接'],
+        notes: ['手肘高抬保持槓穩定', '核心非常重要'],
+        mindMuscleScore: 8.5
+    },
+    '史密斯弓箭步': {
+        englishName: 'smith machine lunge',
+        primary: ['腿', '臀'],
+        secondary: ['核心'],
+        equipment: ['史密斯機'],
+        difficulty: 3,
+        defaultReps: '10-12下/邊',
+        defaultRest: 90,
+        sets: 3,
+        isBilateral: true,
+        howTo: ['槓置於上背，一腳向前跨大步', '前膝彎曲 90 度，後膝接近地面', '前腳推起回到起始位置', '完成所有次數後換腳'],
+        notes: ['前膝不要超過腳尖', '保持上身挺直'],
+        mindMuscleScore: 9.0
+    },
+    '史密斯保加利亞分腿蹲': {
+        englishName: 'smith machine bulgarian split squat',
+        primary: ['腿', '臀'],
+        secondary: ['核心'],
+        equipment: ['史密斯機', '椅子'],
+        difficulty: 3,
+        defaultReps: '10-12下/邊',
+        defaultRest: 90,
+        sets: 3,
+        isBilateral: true,
+        howTo: ['槓置於上背，後腳放在身後椅子上', '前腳離椅子約 60 公分', '下蹲時前膝彎曲 90 度', '上身略前傾，臀部後推發力'],
+        notes: ['是單腿王者動作，臀部刺激極佳', '初學者可先用空槓練'],
+        mindMuscleScore: 9.5
+    },
+    '史密斯小腿提踵': {
+        englishName: 'smith machine calf raise',
+        primary: ['腿'],
+        secondary: [],
+        equipment: ['史密斯機'],
+        difficulty: 1,
+        defaultReps: '15-20下',
+        defaultRest: 60,
+        sets: 4,
+        howTo: ['槓置於上背，腳掌前半部踩在槓片上', '腳跟懸空', '緩慢踮起腳尖至最高', '頂端停留 1 秒感受小腿收縮', '緩慢下放到最低伸展'],
+        notes: ['全範圍動作很重要', '速度慢，感受度好'],
+        mindMuscleScore: 8.5
+    },
+    '史密斯臀推': {
+        englishName: 'smith machine hip thrust',
+        primary: ['臀'],
+        secondary: ['腿'],
+        equipment: ['史密斯機'],
+        difficulty: 2,
+        defaultReps: '10-15下',
+        defaultRest: 90,
+        sets: 4,
+        howTo: ['上背靠在椅子或墊子上', '槓放在髖部上方（用泡棉墊保護）', '雙腳踩地，膝蓋彎曲 90 度', '臀部用力向上頂，至身體成一直線', '頂端用力夾臀 1 秒再下放'],
+        notes: ['臀大肌最佳訓練動作之一！', '頂端要充分擠壓臀部'],
+        mindMuscleScore: 9.5
+    },
+    '史密斯相撲深蹲': {
+        englishName: 'smith machine sumo squat',
+        primary: ['臀', '腿'],
+        secondary: ['核心'],
+        equipment: ['史密斯機'],
+        difficulty: 2,
+        defaultReps: '10-12下',
+        defaultRest: 90,
+        sets: 3,
+        howTo: ['雙腳寬於肩，腳尖外八 45 度', '槓置於上背', '下蹲時膝蓋朝向腳尖方向', '推起感受大腿內側和臀部'],
+        notes: ['特別練臀中肌和大腿內側', '深度比一般深蹲淺一點'],
+        mindMuscleScore: 8.5
+    },
+    '史密斯三頭推': {
+        englishName: 'smith machine tricep press',
+        primary: ['手臂'],
+        secondary: [],
+        equipment: ['史密斯機'],
+        difficulty: 2,
+        defaultReps: '10-12下',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['平躺於椅上，槓位於額頭上方', '雙手與肩同寬正握', '手肘固定不動，僅前臂下放至額頭', '推起時三頭發力', '又稱 Skull Crusher（碎顱者）'],
+        notes: ['手肘要固定，是孤立動作', '重量不宜過重'],
+        mindMuscleScore: 8.5
+    },
+    '史密斯反握彎舉': {
+        englishName: 'smith machine reverse curl',
+        primary: ['手臂'],
+        secondary: [],
+        equipment: ['史密斯機'],
+        difficulty: 2,
+        defaultReps: '10-12下',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['站立，反握（手心朝上）寬度與肩同寬', '槓在大腿前', '手肘固定身側', '彎舉至胸前，二頭發力', '緩慢下放'],
+        notes: ['手肘不要往前甩', '速度慢，感受二頭收縮'],
+        mindMuscleScore: 8.0
+    },
+    '史密斯直立划船': {
+        englishName: 'smith machine upright row',
+        primary: ['肩'],
+        secondary: ['手臂'],
+        equipment: ['史密斯機'],
+        difficulty: 2,
+        defaultReps: '10-12下',
+        defaultRest: 60,
+        sets: 3,
+        howTo: ['站立，雙手窄於肩握槓（約 20 公分）', '槓在大腿前', '上拉至胸口高度，手肘高於手腕', '頂端停留 1 秒', '緩慢下放'],
+        notes: ['不要拉到下巴，肩膀容易夾擠', '感覺三角肌中束', '若肩痛立即停'],
+        mindMuscleScore: 7.5
+    },
+};
+
+// ============================================
+// 史密斯機訓練計畫（4 個分區）
+// ============================================
+const smithTemplates = {
+    'smith_chest': {
+        name: '胸肩三頭',
+        icon: '💪',
+        focus: '胸、肩、三頭肌',
+        exercises: ['史密斯臥推', '史密斯上斜臥推', '史密斯肩推', '史密斯三頭推', '史密斯窄握臥推']
+    },
+    'smith_back': {
+        name: '背二頭',
+        icon: '🔱',
+        focus: '背、二頭肌',
+        exercises: ['史密斯划船', '史密斯硬舉', '史密斯反握划船', '史密斯反握彎舉', '史密斯後拉']
+    },
+    'smith_legs': {
+        name: '腿臀',
+        icon: '🦵',
+        focus: '腿、臀',
+        exercises: ['史密斯深蹲', '史密斯臀推', '史密斯保加利亞分腿蹲', '史密斯弓箭步', '史密斯小腿提踵']
+    },
+    'smith_core': {
+        name: '核心強化',
+        icon: '🔥',
+        focus: '核心 + 軀幹脂肪',
+        exercises: ['平板支撐', '俄羅斯轉體', '登山者', '反向捲腹', '波比跳']
+    }
+};
+
+// v16: 合併史密斯機動作進 exerciseDB（讓所有頁面都能存取）
+Object.keys(smithDB).forEach(function(k) {
+    exerciseDB[k] = smithDB[k];
+});
 
 // ============================================
 // 訓練模板
@@ -2388,7 +2712,14 @@ function FitnessApp() {
 
     const getDayExercises = (day) => {
         const config = durationConfigs[duration];
-        const baseExercises = customWorkouts[day] || defaultTemplates[day]?.exercises || [];
+        // v16: 支援史密斯機訓練
+        var template;
+        if (day && day.indexOf('smith_') === 0) {
+            template = smithTemplates[day];
+        } else {
+            template = defaultTemplates[day];
+        }
+        const baseExercises = customWorkouts[day] || (template && template.exercises) || [];
         return baseExercises.slice(0, config.exerciseCount);
     };
 
@@ -3370,6 +3701,77 @@ function FitnessApp() {
     };
     
     // ============================================
+    // 史密斯機訓練選擇頁面 (v16 新)
+    // ============================================
+    const SmithMenuPage = () => {
+        return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black text-white' },
+            // 頂部
+            React.createElement('div', { className: 'px-5 pt-6 pb-4 sticky top-0 bg-gradient-to-b from-slate-950 via-slate-950/95 to-transparent z-20 backdrop-blur-sm' },
+                React.createElement('div', { className: 'flex justify-between items-start' },
+                    React.createElement('div', null,
+                        React.createElement('p', { className: 'text-xs text-amber-400 font-mono uppercase tracking-widest mb-1' }, '🏋️ 健身房訓練'),
+                        React.createElement('h1', { className: 'text-3xl font-black bg-gradient-to-r from-white to-amber-300 bg-clip-text text-transparent' }, '史密斯機訓練')
+                    ),
+                    React.createElement('button', {
+                        onClick: () => setCurrentPage('home'),
+                        className: 'px-3 py-2 bg-slate-800 rounded-xl text-slate-300 text-sm'
+                    }, '✕')
+                )
+            ),
+            
+            React.createElement('div', { className: 'px-5 pb-32 space-y-4' },
+                // 介紹卡
+                React.createElement('div', { className: 'bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-3xl p-4' },
+                    React.createElement('p', { className: 'text-sm text-amber-200 mb-2 font-bold' }, '💡 史密斯機訓練特色'),
+                    React.createElement('p', { className: 'text-xs text-slate-400 leading-relaxed' }, 
+                        '槓鈴在固定軌道上移動，不需要平衡感。重量可推到力竭，安全鉤可隨時鎖定。適合單人訓練。'
+                    )
+                ),
+                
+                // 4 個訓練計畫卡
+                Object.entries(smithTemplates).map(function(entry) {
+                    var dayId = entry[0];
+                    var template = entry[1];
+                    return React.createElement('button', {
+                        key: dayId,
+                        onClick: function() { 
+                            startTraining(dayId);
+                        },
+                        className: 'w-full bg-slate-900/50 border border-slate-800 hover:border-amber-500/50 rounded-2xl p-4 text-left transition-all'
+                    },
+                        React.createElement('div', { className: 'flex items-center gap-3 mb-2' },
+                            React.createElement('span', { className: 'text-3xl' }, template.icon),
+                            React.createElement('div', { className: 'flex-1' },
+                                React.createElement('p', { className: 'text-xs text-amber-400 uppercase tracking-wider' }, dayId.replace('smith_', '#')),
+                                React.createElement('p', { className: 'text-lg font-bold text-white' }, template.name)
+                            ),
+                            React.createElement(Icon, { name: 'chevronRight', size: 20, className: 'text-slate-500' })
+                        ),
+                        React.createElement('p', { className: 'text-xs text-slate-400 mb-2' }, template.focus),
+                        React.createElement('div', { className: 'flex flex-wrap gap-1.5' },
+                            template.exercises.slice(0, 5).map(function(name, i) {
+                                return React.createElement('span', {
+                                    key: i,
+                                    className: 'text-[10px] px-2 py-0.5 bg-slate-800 rounded-full text-slate-400'
+                                }, name);
+                            })
+                        )
+                    );
+                }),
+                
+                // 自訂提示
+                React.createElement('div', { className: 'bg-slate-900/30 border border-slate-800 rounded-2xl p-3 mt-4' },
+                    React.createElement('p', { className: 'text-xs text-slate-400 leading-relaxed' }, 
+                        '💡 進入訓練後可點「自訂」替換動作。所有 20 個史密斯機動作都會出現在「動作資料庫」中。'
+                    )
+                )
+            ),
+            
+            React.createElement(BottomTabs)
+        );
+    };
+    
+        // ============================================
     // 動作資料庫頁面
     // ============================================
     const ExerciseLibraryPage = () => {
@@ -3740,6 +4142,10 @@ function FitnessApp() {
         return React.createElement(BodyDataPage);
     }
     
+    if (currentPage === 'smith') {
+        return React.createElement(SmithMenuPage);
+    }
+    
     if (currentPage === 'home') {
         // 如果在食物分頁，顯示 FoodPage 包在底部 tab bar 裡
         if (mainTab === 'food') {
@@ -3938,6 +4344,20 @@ function FitnessApp() {
                         React.createElement('span', { className: 'text-2xl' }, '🧘'),
                         React.createElement('span', { className: 'text-xs font-semibold text-emerald-300' }, '單獨收操')
                     )
+                ),
+                // 史密斯機訓練按鈕（v16 新）
+                React.createElement('button', {
+                    onClick: () => setCurrentPage('smith'),
+                    className: 'w-full p-4 bg-gradient-to-br from-amber-950/40 to-orange-950/40 border border-amber-700/40 rounded-2xl flex items-center justify-between'
+                },
+                    React.createElement('div', { className: 'flex items-center gap-3' },
+                        React.createElement('span', { className: 'text-xl' }, '🏋️'),
+                        React.createElement('div', { className: 'text-left' },
+                            React.createElement('p', { className: 'font-semibold text-white' }, '史密斯機訓練'),
+                            React.createElement('p', { className: 'text-[10px] text-amber-400' }, '4 個健身房計畫 · 20 個動作')
+                        )
+                    ),
+                    React.createElement(Icon, { name: 'chevronRight', size: 20, className: 'text-amber-500' })
                 ),
                 // 身體數據按鈕（v13 新）
                 React.createElement('button', {
