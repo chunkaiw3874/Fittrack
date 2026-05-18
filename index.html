@@ -3116,15 +3116,39 @@ function FitnessApp() {
         }
     };
 
-    const recordSet = (reps, weight) => {
+    const recordSet = (reps, weight, editIdx) => {
         // reps 是次數或秒數，weight 是重量(kg)，weight 可為 null
+        // editIdx 是要編輯的組數 index（undefined = 新增一組到最後）
         var record = weight != null ? { reps: reps, weight: weight } : reps;
         var newSets = completedSets.slice();
-        newSets[currentExerciseIdx] = (newSets[currentExerciseIdx] || []).concat([record]);
+        var currentSets = (newSets[currentExerciseIdx] || []).slice();
+        if (editIdx != null && editIdx < currentSets.length) {
+            // v19.3: 編輯既有組數
+            currentSets[editIdx] = record;
+        } else {
+            // 新增到最後
+            currentSets.push(record);
+        }
+        newSets[currentExerciseIdx] = currentSets;
         setCompletedSets(newSets);
         setIsTimerRunning(false);
         setTimerSeconds(0);
         // 立即儲存進度
+        var today = new Date().toISOString().split('T')[0];
+        var newProgress = Object.assign({}, progress);
+        newProgress[today] = Object.assign({}, newProgress[today] || {});
+        newProgress[today][selectedDay] = newSets;
+        setProgress(newProgress);
+        safeStorage.set('fittrack_progress', newProgress);
+    };
+    
+    // v19.3: 刪除某一組紀錄
+    const deleteSet = (setIdx) => {
+        var newSets = completedSets.slice();
+        var currentSets = (newSets[currentExerciseIdx] || []).slice();
+        currentSets.splice(setIdx, 1);
+        newSets[currentExerciseIdx] = currentSets;
+        setCompletedSets(newSets);
         var today = new Date().toISOString().split('T')[0];
         var newProgress = Object.assign({}, progress);
         newProgress[today] = Object.assign({}, newProgress[today] || {});
@@ -3212,16 +3236,21 @@ function FitnessApp() {
     const repsInputRef = useRef(null);
     const weightInputRef = useRef(null);
     
-    // Modal 開啟時清空並聚焦
+    // Modal 開啟時清空並聚焦（編輯模式預填值）
     useEffect(() => {
         if (showInputModal) {
             setTimeout(() => {
                 if (repsInputRef.current) {
-                    repsInputRef.current.value = '';
+                    // v19.3: 編輯模式預填
+                    repsInputRef.current.value = (showInputModal.prefilReps != null) ? showInputModal.prefilReps : '';
                     repsInputRef.current.focus();
+                    // 全選方便覆寫
+                    if (showInputModal.editIdx != null && repsInputRef.current.select) {
+                        repsInputRef.current.select();
+                    }
                 }
                 if (weightInputRef.current) {
-                    weightInputRef.current.value = '';
+                    weightInputRef.current.value = (showInputModal.prefillWeight != null) ? showInputModal.prefillWeight : '';
                 }
             }, 100);
         }
@@ -3231,7 +3260,8 @@ function FitnessApp() {
         const n = parseInt(repsInputRef.current ? repsInputRef.current.value : '');
         const w = parseFloat(weightInputRef.current ? weightInputRef.current.value : '');
         if (n && n > 0) {
-            recordSet(n, isNaN(w) ? null : w);
+            // v19.3: 傳入 editIdx 支援編輯模式
+            recordSet(n, isNaN(w) ? null : w, showInputModal && showInputModal.editIdx);
             setShowInputModal(null);
         }
     };
@@ -3245,7 +3275,9 @@ function FitnessApp() {
             className: 'bg-slate-900 border-t border-slate-700 rounded-t-3xl w-full p-5 pb-8',
             onClick: e => e.stopPropagation()
         },
-            React.createElement('h3', { className: 'text-lg font-bold text-cyan-300 mb-2' }, '第 ' + (showInputModal.setNum) + ' 組完成？'),
+            React.createElement('h3', { className: 'text-lg font-bold mb-2 ' + (showInputModal.editIdx != null ? 'text-amber-300' : 'text-cyan-300') }, 
+                showInputModal.editIdx != null ? ('✏️ 編輯第 ' + (showInputModal.setNum) + ' 組') : ('第 ' + (showInputModal.setNum) + ' 組完成？')
+            ),
             React.createElement('p', { className: 'text-sm text-slate-400 mb-4' }, '目標：' + (showInputModal.target)),
             
             // 次數/秒數輸入（uncontrolled - 不用 value+onChange）
@@ -3279,15 +3311,30 @@ function FitnessApp() {
                 className: 'w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white text-xl font-bold text-center mb-4'
             }),
             
-            React.createElement('div', { className: 'flex gap-2' },
-                React.createElement('button', {
-                    onClick: () => { setShowInputModal(null); },
-                    className: 'flex-1 py-3 bg-slate-800 rounded-xl text-slate-300 font-semibold'
-                }, '取消'),
-                React.createElement('button', {
-                    onClick: handleSubmitInput,
-                    className: 'flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl text-white font-bold'
-                }, '✓ 記錄')
+            React.createElement('div', { className: 'space-y-2' },
+                React.createElement('div', { className: 'flex gap-2' },
+                    React.createElement('button', {
+                        onClick: () => { setShowInputModal(null); },
+                        className: 'flex-1 py-3 bg-slate-800 rounded-xl text-slate-300 font-semibold'
+                    }, '取消'),
+                    React.createElement('button', {
+                        onClick: handleSubmitInput,
+                        className: 'flex-1 py-3 rounded-xl text-white font-bold ' + 
+                            (showInputModal && showInputModal.editIdx != null 
+                                ? 'bg-gradient-to-r from-amber-500 to-orange-500' 
+                                : 'bg-gradient-to-r from-cyan-500 to-blue-500')
+                    }, showInputModal && showInputModal.editIdx != null ? '✓ 更新' : '✓ 記錄')
+                ),
+                // v19.3: 編輯模式加「刪除這組」按鈕
+                showInputModal && showInputModal.editIdx != null && React.createElement('button', {
+                    onClick: () => {
+                        if (confirm('確定要刪除第 ' + showInputModal.setNum + ' 組的紀錄？')) {
+                            deleteSet(showInputModal.editIdx);
+                            setShowInputModal(null);
+                        }
+                    },
+                    className: 'w-full py-2.5 bg-rose-950/40 border border-rose-700/40 rounded-xl text-rose-300 font-semibold text-sm'
+                }, '🗑️ 刪除這組紀錄')
             )
         ));
     };
@@ -5300,15 +5347,28 @@ function FitnessApp() {
                                 key: idx,
                                 onClick: () => { 
                                     if (isNext) {
-                                        // v14 修復：計時動作也能手動點按鈕記錄
+                                        // 下一組 - 空白輸入框
                                         setShowInputModal({ 
                                             setNum: idx + 1, 
                                             target: ex.defaultReps,
                                             isTimed: isTimedEx
                                         });
+                                    } else if (isDone) {
+                                        // v19.3: 編輯已完成的組（預填現有值）
+                                        var existing = setsForExercise[idx];
+                                        var preReps = (typeof existing === 'object' && existing.reps != null) ? existing.reps : existing;
+                                        var preWeight = (typeof existing === 'object' && existing.weight != null) ? existing.weight : null;
+                                        setShowInputModal({ 
+                                            setNum: idx + 1, 
+                                            target: ex.defaultReps,
+                                            isTimed: isTimedEx,
+                                            editIdx: idx,
+                                            prefilReps: preReps,
+                                            prefillWeight: preWeight
+                                        });
                                     }
                                 },
-                                disabled: !isNext,
+                                disabled: !isNext && !isDone,
                                 className: 'aspect-square rounded-2xl border-2 flex flex-col items-center justify-center ' + (isDone ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : isNext ? 'bg-cyan-500/10 border-cyan-500 text-cyan-300 animate-pulse' : 'bg-slate-800/30 border-slate-700 text-slate-600')
                             },
                                 isDone ? React.createElement(React.Fragment, null,
