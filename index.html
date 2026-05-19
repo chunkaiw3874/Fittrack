@@ -2538,6 +2538,17 @@ function FitnessApp() {
                             if (!newProgress[today]) newProgress[today] = {};
                             newProgress[today] = Object.assign({}, newProgress[today]);
                             newProgress[today][selectedDay] = newSets;
+                            
+                            // v19.5: 同步 _byName
+                            var todayExercises = getDayExercises(selectedDay);
+                            var byName = newProgress[today]['_byName'] || {};
+                            for (var i = 0; i < newSets.length; i++) {
+                                if (todayExercises[i] && newSets[i] && newSets[i].length > 0) {
+                                    byName[todayExercises[i]] = newSets[i];
+                                }
+                            }
+                            newProgress[today]['_byName'] = byName;
+                            
                             safeStorage.set('fittrack_progress', newProgress);
                             return newProgress;
                         });
@@ -3117,42 +3128,73 @@ function FitnessApp() {
     };
 
     const recordSet = (reps, weight, editIdx) => {
-        // reps 是次數或秒數，weight 是重量(kg)，weight 可為 null
-        // editIdx 是要編輯的組數 index（undefined = 新增一組到最後）
         var record = weight != null ? { reps: reps, weight: weight } : reps;
         var newSets = completedSets.slice();
         var currentSets = (newSets[currentExerciseIdx] || []).slice();
         if (editIdx != null && editIdx < currentSets.length) {
-            // v19.3: 編輯既有組數
             currentSets[editIdx] = record;
         } else {
-            // 新增到最後
             currentSets.push(record);
         }
         newSets[currentExerciseIdx] = currentSets;
         setCompletedSets(newSets);
         setIsTimerRunning(false);
         setTimerSeconds(0);
-        // 立即儲存進度
+        
+        // v19.5: 同時用「動作名稱」儲存（讓上次紀錄能找到）
         var today = new Date().toISOString().split('T')[0];
         var newProgress = Object.assign({}, progress);
         newProgress[today] = Object.assign({}, newProgress[today] || {});
+        
+        // 取得當前訓練日所有動作名稱
+        var todayExercises = getDayExercises(selectedDay);
+        var byName = {};
+        for (var i = 0; i < newSets.length; i++) {
+            if (todayExercises[i] && newSets[i] && newSets[i].length > 0) {
+                byName[todayExercises[i]] = newSets[i];
+            }
+        }
+        
+        // 同時保留陣列格式（向下相容）+ 加入 _byName
+        var dayRecord = newSets.slice();
+        dayRecord._byName = byName;
+        // 但陣列不能直接掛屬性後 JSON serialize... 用物件包
         newProgress[today][selectedDay] = newSets;
+        // 另外存 byName 在頂層（用特殊 key）
+        if (!newProgress[today]['_byName']) newProgress[today]['_byName'] = {};
+        Object.keys(byName).forEach(function(k) {
+            newProgress[today]['_byName'][k] = byName[k];
+        });
+        
         setProgress(newProgress);
         safeStorage.set('fittrack_progress', newProgress);
     };
     
-    // v19.3: 刪除某一組紀錄
     const deleteSet = (setIdx) => {
         var newSets = completedSets.slice();
         var currentSets = (newSets[currentExerciseIdx] || []).slice();
         currentSets.splice(setIdx, 1);
         newSets[currentExerciseIdx] = currentSets;
         setCompletedSets(newSets);
+        
         var today = new Date().toISOString().split('T')[0];
         var newProgress = Object.assign({}, progress);
         newProgress[today] = Object.assign({}, newProgress[today] || {});
         newProgress[today][selectedDay] = newSets;
+        
+        // v19.5: 同步更新 _byName
+        var todayExercises = getDayExercises(selectedDay);
+        var byName = newProgress[today]['_byName'] || {};
+        var currentName = todayExercises[currentExerciseIdx];
+        if (currentName) {
+            if (newSets[currentExerciseIdx] && newSets[currentExerciseIdx].length > 0) {
+                byName[currentName] = newSets[currentExerciseIdx];
+            } else {
+                delete byName[currentName];
+            }
+        }
+        newProgress[today]['_byName'] = byName;
+        
         setProgress(newProgress);
         safeStorage.set('fittrack_progress', newProgress);
     };
@@ -5329,9 +5371,98 @@ function FitnessApp() {
                             '⭐'.repeat(Math.round((ex.mindMuscleScore || 0) / 2)) + 
                             ' (' + (ex.mindMuscleScore || 0) + '/10)'
                         ),
-                        lastRecord && React.createElement('p', { className: 'text-xs text-slate-300 mt-2' }, 
-                            '📊 上次紀錄 (' + lastRecord.date + ')：' + 
-                            lastRecord.sets.map(formatRecord).join(', ')
+                        // v19.4: 上次紀錄已移到下方獨立卡片
+                        null
+                    );
+                })(),
+                
+                // v19.5: 用「動作名稱」找上次紀錄（跨訓練日、跨 index）
+                (function() {
+                    var lastRec = null;
+                    var today = new Date().toISOString().split('T')[0];
+                    var dates = Object.keys(progress).sort().reverse();
+                    
+                    // 跨所有日期、所有訓練日找這個動作名稱
+                    for (var i = 0; i < dates.length; i++) {
+                        var d = dates[i];
+                        if (d === today) continue; // 跳過今天
+                        if (!progress[d]) continue;
+                        
+                        // 先試新格式（最快）
+                        if (progress[d]._byName && progress[d]._byName[currentExName]) {
+                            var setsByName = progress[d]._byName[currentExName];
+                            if (setsByName && setsByName.length > 0) {
+                                lastRec = { date: d, sets: setsByName };
+                                break;
+                            }
+                        }
+                        
+                        // 舊格式（用 index）：遍歷該日期的所有訓練日
+                        var daysOnThatDate = Object.keys(progress[d]).filter(function(k) { return k !== '_byName'; });
+                        for (var j = 0; j < daysOnThatDate.length; j++) {
+                            var dayKey = daysOnThatDate[j];
+                            var dayData = progress[d][dayKey];
+                            
+                            // 兩種資料格式都支援
+                            // v19.5 新格式：progress[d]._byName[動作名]
+                            if (progress[d]._byName && progress[d]._byName[currentExName]) {
+                                var sets = progress[d]._byName[currentExName];
+                                if (sets && sets.length > 0) {
+                                    lastRec = { date: d, sets: sets };
+                                    break;
+                                }
+                            } else if (Array.isArray(dayData)) {
+                                // 舊格式：用 index 查（往回找這個動作）
+                                // 需要知道那天該訓練日的動作順序
+                                var thatDayTemplate = (dayKey && dayKey.indexOf('smith_') === 0) 
+                                    ? (smithTemplates[dayKey] && smithTemplates[dayKey].exercises) 
+                                    : (defaultTemplates[dayKey] && defaultTemplates[dayKey].exercises);
+                                var thatDayCustom = customWorkouts[dayKey];
+                                var thatDayExercises = thatDayCustom || thatDayTemplate || [];
+                                
+                                for (var k = 0; k < thatDayExercises.length; k++) {
+                                    if (thatDayExercises[k] === currentExName && dayData[k] && dayData[k].length > 0) {
+                                        lastRec = { date: d, sets: dayData[k] };
+                                        break;
+                                    }
+                                }
+                                if (lastRec) break;
+                            }
+                        }
+                        if (lastRec) break;
+                    }
+                    if (!lastRec) {
+                        return React.createElement('div', { className: 'bg-slate-900/30 border border-slate-800 rounded-2xl p-3 text-center' },
+                            React.createElement('p', { className: 'text-xs text-slate-500' }, '🆕 第一次訓練這個動作 — 加油！')
+                        );
+                    }
+                    var isTimedEx = isTimedExercise(ex.defaultReps);
+                    return React.createElement('div', { className: 'bg-gradient-to-br from-amber-950/40 to-orange-950/40 border border-amber-700/40 rounded-2xl p-4' },
+                        React.createElement('div', { className: 'flex justify-between items-start mb-2' },
+                            React.createElement('p', { className: 'text-xs text-amber-400 font-bold uppercase tracking-wider' }, '📊 上次紀錄'),
+                            React.createElement('p', { className: 'text-[10px] text-slate-500' }, lastRec.date)
+                        ),
+                        React.createElement('div', { className: 'grid grid-cols-' + Math.min(lastRec.sets.length, 4) + ' gap-2' },
+                            lastRec.sets.map(function(s, i) {
+                                var reps, weight;
+                                if (typeof s === 'object' && s.reps != null) {
+                                    reps = s.reps;
+                                    weight = s.weight;
+                                } else {
+                                    reps = s;
+                                    weight = null;
+                                }
+                                return React.createElement('div', {
+                                    key: i,
+                                    className: 'bg-slate-900/50 rounded-xl p-2 text-center'
+                                },
+                                    React.createElement('p', { className: 'text-[10px] text-slate-500' }, '第' + (i + 1) + '組'),
+                                    React.createElement('p', { className: 'text-base font-bold text-amber-300' }, 
+                                        reps + (isTimedEx ? 's' : '下')
+                                    ),
+                                    weight != null && React.createElement('p', { className: 'text-[10px] text-cyan-400' }, weight + 'kg')
+                                );
+                            })
                         )
                     );
                 })(),
