@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -23,9 +22,7 @@
 <title>FitTrack</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
-
 <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-
 <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
 
 <style>
@@ -55,7 +52,6 @@ body {
 .loading-text { margin-top: 20px; color: #64748b; font-size: 14px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>
-
 </head>
 <body class="no-select">
 <div id="loading">
@@ -5376,91 +5372,96 @@ function FitnessApp() {
                     );
                 })(),
                 
-                // v19.5: 用「動作名稱」找上次紀錄（跨訓練日、跨 index）
+// v19.6: 顯示這個動作最近 3 次的紀錄（掃描所有歷史，新舊格式都支援）
                 (function() {
-                    var lastRec = null;
                     var today = new Date().toISOString().split('T')[0];
+                    var allRecords = []; // { date, sets }
                     var dates = Object.keys(progress).sort().reverse();
                     
-                    // 跨所有日期、所有訓練日找這個動作名稱
                     for (var i = 0; i < dates.length; i++) {
                         var d = dates[i];
-                        if (d === today) continue; // 跳過今天
                         if (!progress[d]) continue;
+                        var foundForThisDate = null;
                         
-                        // 先試新格式（最快）
+                        // 方法 1：新格式 _byName
                         if (progress[d]._byName && progress[d]._byName[currentExName]) {
-                            var setsByName = progress[d]._byName[currentExName];
-                            if (setsByName && setsByName.length > 0) {
-                                lastRec = { date: d, sets: setsByName };
-                                break;
-                            }
+                            var s = progress[d]._byName[currentExName];
+                            if (s && s.length > 0) foundForThisDate = s;
                         }
                         
-                        // 舊格式（用 index）：遍歷該日期的所有訓練日
-                        var daysOnThatDate = Object.keys(progress[d]).filter(function(k) { return k !== '_byName'; });
-                        for (var j = 0; j < daysOnThatDate.length; j++) {
-                            var dayKey = daysOnThatDate[j];
-                            var dayData = progress[d][dayKey];
-                            
-                            // 兩種資料格式都支援
-                            // v19.5 新格式：progress[d]._byName[動作名]
-                            if (progress[d]._byName && progress[d]._byName[currentExName]) {
-                                var sets = progress[d]._byName[currentExName];
-                                if (sets && sets.length > 0) {
-                                    lastRec = { date: d, sets: sets };
-                                    break;
-                                }
-                            } else if (Array.isArray(dayData)) {
-                                // 舊格式：用 index 查（往回找這個動作）
-                                // 需要知道那天該訓練日的動作順序
-                                var thatDayTemplate = (dayKey && dayKey.indexOf('smith_') === 0) 
-                                    ? (smithTemplates[dayKey] && smithTemplates[dayKey].exercises) 
-                                    : (defaultTemplates[dayKey] && defaultTemplates[dayKey].exercises);
-                                var thatDayCustom = customWorkouts[dayKey];
-                                var thatDayExercises = thatDayCustom || thatDayTemplate || [];
+                        // 方法 2：舊格式 - 掃描每個訓練日的每個 index
+                        if (!foundForThisDate) {
+                            var dayKeys = Object.keys(progress[d]).filter(function(k) { return k !== '_byName'; });
+                            for (var j = 0; j < dayKeys.length; j++) {
+                                var dayKey = dayKeys[j];
+                                var dayData = progress[d][dayKey];
+                                if (!Array.isArray(dayData)) continue;
                                 
-                                for (var k = 0; k < thatDayExercises.length; k++) {
-                                    if (thatDayExercises[k] === currentExName && dayData[k] && dayData[k].length > 0) {
-                                        lastRec = { date: d, sets: dayData[k] };
+                                // 找出那天那個訓練日的動作順序
+                                var tpl;
+                                if (dayKey.indexOf('smith_') === 0) {
+                                    tpl = smithTemplates[dayKey] && smithTemplates[dayKey].exercises;
+                                } else {
+                                    tpl = defaultTemplates[dayKey] && defaultTemplates[dayKey].exercises;
+                                }
+                                var exList = customWorkouts[dayKey] || tpl || [];
+                                
+                                for (var k = 0; k < exList.length; k++) {
+                                    if (exList[k] === currentExName && dayData[k] && dayData[k].length > 0) {
+                                        foundForThisDate = dayData[k];
                                         break;
                                     }
                                 }
-                                if (lastRec) break;
+                                if (foundForThisDate) break;
                             }
                         }
-                        if (lastRec) break;
+                        
+                        if (foundForThisDate) {
+                            allRecords.push({ date: d, sets: foundForThisDate, isToday: d === today });
+                        }
                     }
-                    if (!lastRec) {
+                    
+                    // 取最近 3 筆
+                    var recent3 = allRecords.slice(0, 3);
+                    var isTimedEx = isTimedExercise(ex.defaultReps);
+                    
+                    var formatSet = function(s) {
+                        var reps, weight;
+                        if (typeof s === 'object' && s.reps != null) {
+                            reps = s.reps; weight = s.weight;
+                        } else {
+                            reps = s; weight = null;
+                        }
+                        return reps + (isTimedEx ? 's' : '下') + (weight != null ? '×' + weight + 'kg' : '');
+                    };
+                    
+                    if (recent3.length === 0) {
                         return React.createElement('div', { className: 'bg-slate-900/30 border border-slate-800 rounded-2xl p-3 text-center' },
-                            React.createElement('p', { className: 'text-xs text-slate-500' }, '🆕 第一次訓練這個動作 — 加油！')
+                            React.createElement('p', { className: 'text-xs text-slate-500' }, '🆕 還沒有這個動作的紀錄 — 開始第一次訓練！')
                         );
                     }
-                    var isTimedEx = isTimedExercise(ex.defaultReps);
+                    
                     return React.createElement('div', { className: 'bg-gradient-to-br from-amber-950/40 to-orange-950/40 border border-amber-700/40 rounded-2xl p-4' },
-                        React.createElement('div', { className: 'flex justify-between items-start mb-2' },
-                            React.createElement('p', { className: 'text-xs text-amber-400 font-bold uppercase tracking-wider' }, '📊 上次紀錄'),
-                            React.createElement('p', { className: 'text-[10px] text-slate-500' }, lastRec.date)
-                        ),
-                        React.createElement('div', { className: 'grid grid-cols-' + Math.min(lastRec.sets.length, 4) + ' gap-2' },
-                            lastRec.sets.map(function(s, i) {
-                                var reps, weight;
-                                if (typeof s === 'object' && s.reps != null) {
-                                    reps = s.reps;
-                                    weight = s.weight;
-                                } else {
-                                    reps = s;
-                                    weight = null;
-                                }
+                        React.createElement('p', { className: 'text-xs text-amber-400 font-bold uppercase tracking-wider mb-3' }, '📊 最近紀錄'),
+                        React.createElement('div', { className: 'space-y-2' },
+                            recent3.map(function(rec, ri) {
                                 return React.createElement('div', {
-                                    key: i,
-                                    className: 'bg-slate-900/50 rounded-xl p-2 text-center'
+                                    key: ri,
+                                    className: 'flex items-center gap-2'
                                 },
-                                    React.createElement('p', { className: 'text-[10px] text-slate-500' }, '第' + (i + 1) + '組'),
-                                    React.createElement('p', { className: 'text-base font-bold text-amber-300' }, 
-                                        reps + (isTimedEx ? 's' : '下')
+                                    React.createElement('div', { className: 'flex-shrink-0 w-20' },
+                                        React.createElement('p', { className: 'text-[10px] ' + (rec.isToday ? 'text-emerald-400 font-bold' : 'text-slate-500') }, 
+                                            rec.isToday ? '今天' : rec.date.slice(5)
+                                        )
                                     ),
-                                    weight != null && React.createElement('p', { className: 'text-[10px] text-cyan-400' }, weight + 'kg')
+                                    React.createElement('div', { className: 'flex-1 flex flex-wrap gap-1' },
+                                        rec.sets.map(function(s, si) {
+                                            return React.createElement('span', {
+                                                key: si,
+                                                className: 'text-xs px-2 py-0.5 bg-slate-900/70 rounded-lg text-amber-200'
+                                            }, formatSet(s));
+                                        })
+                                    )
                                 );
                             })
                         )
@@ -5828,6 +5829,5 @@ root.render(React.createElement(FitnessApp));
 
 
 </script>
-
 </body>
 </html>
