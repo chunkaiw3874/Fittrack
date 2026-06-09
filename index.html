@@ -121,6 +121,7 @@ window.addEventListener('error', function(e) {
 <script>
 
 
+
 // ============================================
 // FitTrack - Kevin 的健身計畫 PWA
 // ============================================
@@ -2720,6 +2721,116 @@ function FitnessApp() {
         };
     }, []);
     
+    // v21: Wake Lock - 訓練中保持螢幕常亮（避免待機後重置）
+    const wakeLockRef = useRef(null);
+    
+    useEffect(() => {
+        const acquireWakeLock = async () => {
+            if (!('wakeLock' in navigator)) return; // 不支援就跳過
+            try {
+                wakeLockRef.current = await navigator.wakeLock.request('screen');
+                wakeLockRef.current.addEventListener('release', () => {
+                    wakeLockRef.current = null;
+                });
+            } catch (e) {
+                console.log('Wake lock failed:', e.message);
+            }
+        };
+        
+        const releaseWakeLock = async () => {
+            if (wakeLockRef.current) {
+                try { await wakeLockRef.current.release(); } catch (e) {}
+                wakeLockRef.current = null;
+            }
+        };
+        
+        // 只在訓練頁面啟用 wake lock
+        if (currentPage === 'training') {
+            acquireWakeLock();
+        } else {
+            releaseWakeLock();
+        }
+        
+        // 螢幕從睡眠回來時重新取得 wake lock
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && currentPage === 'training' && !wakeLockRef.current) {
+                acquireWakeLock();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [currentPage]);
+    
+    // v21: 自動儲存訓練狀態（避免 App 被殺掉狀態消失）
+    useEffect(() => {
+        if (currentPage !== 'training' || !selectedDay) return;
+        
+        const sessionState = {
+            currentPage: currentPage,
+            selectedDay: selectedDay,
+            currentExerciseIdx: currentExerciseIdx,
+            completedSets: completedSets,
+            trainingPhase: trainingPhase,
+            warmupIdx: warmupIdx,
+            cooldownIdx: cooldownIdx,
+            duration: duration,
+            timestamp: Date.now()
+        };
+        
+        safeStorage.set('fittrack_session', sessionState);
+    }, [currentPage, selectedDay, currentExerciseIdx, completedSets, trainingPhase, warmupIdx, cooldownIdx, duration]);
+    
+    // v21: 離開訓練時清掉 session（如果完成的話）
+    const prevPageRef = useRef('home');
+    useEffect(() => {
+        if (prevPageRef.current === 'training' && currentPage !== 'training') {
+            // 從訓練頁離開（完成或主動退出）→ 清掉 session
+            try { window.localStorage.removeItem('fittrack_session'); } catch (e) {}
+        }
+        prevPageRef.current = currentPage;
+    }, [currentPage]);
+    
+    // v21: App 啟動時檢查有沒有未完成的訓練
+    const [sessionRestorePrompt, setSessionRestorePrompt] = useState(null);
+    
+    useEffect(() => {
+        // 只在 App 初次載入時檢查一次
+        const saved = safeStorage.get('fittrack_session');
+        if (saved && saved.currentPage === 'training' && saved.selectedDay) {
+            // 檢查時間：如果是 4 小時內的，問用戶要不要恢復
+            const hoursSince = (Date.now() - saved.timestamp) / 1000 / 60 / 60;
+            if (hoursSince < 4) {
+                setSessionRestorePrompt(saved);
+            } else {
+                // 太舊就清掉
+                safeStorage.remove ? safeStorage.remove('fittrack_session') : null;
+            }
+        }
+    }, []);
+    
+    // 恢復或捨棄訓練 session
+    const restoreSession = (s) => {
+        setSelectedDay(s.selectedDay);
+        setCurrentExerciseIdx(s.currentExerciseIdx || 0);
+        setCompletedSets(s.completedSets || []);
+        if (s.trainingPhase) setTrainingPhase(s.trainingPhase);
+        if (s.warmupIdx != null) setWarmupIdx(s.warmupIdx);
+        if (s.cooldownIdx != null) setCooldownIdx(s.cooldownIdx);
+        if (s.duration) setDuration(s.duration);
+        setCurrentPage('training');
+        setSessionRestorePrompt(null);
+    };
+    
+    const discardSession = () => {
+        try {
+            window.localStorage.removeItem('fittrack_session');
+        } catch (e) {}
+        setSessionRestorePrompt(null);
+    };
+    
     const playBeep = (frequency, duration) => {
         if (!soundEnabled) return;
         try {
@@ -4678,6 +4789,45 @@ function FitnessApp() {
         return React.createElement(UserGuidePage);
     }
     
+    // v21: 顯示「恢復訓練」彈窗
+    if (sessionRestorePrompt) {
+        return React.createElement('div', { className: 'min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black flex items-center justify-center p-5' },
+            React.createElement('div', { className: 'bg-slate-900 border border-cyan-700/50 rounded-3xl p-6 max-w-sm w-full' },
+                React.createElement('p', { className: 'text-4xl mb-3 text-center' }, '💪'),
+                React.createElement('h3', { className: 'text-xl font-bold text-cyan-300 text-center mb-2' }, '繼續上次的訓練？'),
+                React.createElement('p', { className: 'text-sm text-slate-400 text-center mb-4' }, 
+                    '偵測到未完成的訓練，是否繼續？'
+                ),
+                React.createElement('div', { className: 'bg-slate-800/50 rounded-2xl p-3 mb-4' },
+                    React.createElement('p', { className: 'text-xs text-slate-500 mb-1' }, '訓練日'),
+                    React.createElement('p', { className: 'text-sm text-white font-bold' }, 
+                        (function() {
+                            var dayKey = sessionRestorePrompt.selectedDay;
+                            if (dayKey && dayKey.indexOf('smith_') === 0) {
+                                return 'Cable ' + (smithTemplates[dayKey] && smithTemplates[dayKey].name || dayKey);
+                            }
+                            return defaultTemplates[dayKey] && defaultTemplates[dayKey].name || dayKey;
+                        })()
+                    ),
+                    React.createElement('p', { className: 'text-xs text-slate-500 mt-2 mb-1' }, '已完成動作'),
+                    React.createElement('p', { className: 'text-sm text-amber-300' }, 
+                        (sessionRestorePrompt.currentExerciseIdx || 0) + ' / ?'
+                    )
+                ),
+                React.createElement('div', { className: 'flex gap-2' },
+                    React.createElement('button', {
+                        onClick: discardSession,
+                        className: 'flex-1 py-3 bg-slate-800 rounded-xl text-slate-400 font-semibold text-sm'
+                    }, '從頭開始'),
+                    React.createElement('button', {
+                        onClick: function() { restoreSession(sessionRestorePrompt); },
+                        className: 'flex-1 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl text-white font-bold text-sm'
+                    }, '繼續訓練')
+                )
+            )
+        );
+    }
+    
     if (currentPage === 'home') {
         // 如果在食物分頁，顯示 FoodPage 包在底部 tab bar 裡
         if (mainTab === 'food') {
@@ -5825,6 +5975,7 @@ function FitnessApp() {
 // ============================================
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(React.createElement(FitnessApp));
+
 
 
 
